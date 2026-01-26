@@ -1,5 +1,4 @@
 package com.example.beautyappfrontend.ui.screens
-
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -27,6 +26,7 @@ class SearchActivity : AppCompatActivity() {
         adapter = SpecialistAdapter(emptyList())
         recyclerView.adapter = adapter
 
+        // 🔹 NEW: Repository + Factory
         val repository = SpecialistRepository(RetrofitInstance.api)
         val factory = MainViewModelFactory(repository)
 

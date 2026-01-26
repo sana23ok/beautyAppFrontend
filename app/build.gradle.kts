@@ -34,13 +34,16 @@ android {
     }
     buildFeatures {
         compose = true
-        viewBinding = true
     }
 }
 
 // Source - https://stackoverflow.com/a
 // Posted by iknow, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-01-22, License - CC BY-SA 4.0
+
+//repositories {
+//    google()
+//}
 
 
 dependencies {
@@ -64,10 +67,7 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("io.coil-kt:coil:2.4.0")
 }

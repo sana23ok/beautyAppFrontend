@@ -7,8 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.beautyappfrontend.ui.screens.WelcomeScreen
 import com.example.beautyappfrontend.ui.theme.BeautyAppFrontendTheme
-import com.example.beautyappfrontend.ui.screens.SearchPageActivity
-import com.example.beautyappfrontend.ui.screens.AnalysisResultActivity
+import com.example.beautyappfrontend.ui.screens.SearchActivity // Ми створимо цей файл нижче
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,12 +17,7 @@ class MainActivity : ComponentActivity() {
             BeautyAppFrontendTheme {
                 WelcomeScreen(
                     onNavigateToSearch = {
-                        val intent = Intent(this, SearchPageActivity::class.java)
-                        startActivity(intent)
-                    },
-
-                    onNavigateToAnalysis = {
-                        val intent = Intent(this, AnalysisResultActivity::class.java)
+                        val intent = Intent(this, SearchActivity::class.java)
                         startActivity(intent)
                     }
                 )
