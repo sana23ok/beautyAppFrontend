@@ -12,8 +12,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun WelcomeScreen(
-    // Додаємо callback: "що робити, коли натиснули кнопку"
-    onNavigateToSearch: () -> Unit
+    onNavigateToSearch: () -> Unit,
+    onNavigateToAnalysis: () -> Unit // 1. Додали новий параметр-callback
 ) {
     var serverMessage by remember { mutableStateOf("Click to test!") }
     val coroutineScope = rememberCoroutineScope()
@@ -40,12 +40,18 @@ fun WelcomeScreen(
             Text(text = "Test server connection")
         }
 
-        // Відступ між кнопками
         Spacer(modifier = Modifier.height(16.dp))
 
-        // НОВА КНОПКА: Перехід на пошук
+        // Кнопка пошуку
         Button(onClick = { onNavigateToSearch() }) {
             Text(text = "Go to Search")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 2. НОВА КНОПКА: Перехід на аналіз
+        Button(onClick = { onNavigateToAnalysis() }) {
+            Text(text = "Go to Analysis Results")
         }
     }
 }

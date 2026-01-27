@@ -31,6 +31,11 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".ui.screens.AnalysisResultActivity"
+            android:exported="false"
+            android:label="Результати аналізу" />
+
     </application>
 
 </manifest>
