@@ -1,5 +1,6 @@
 package com.example.beautyappfrontend.ui.screens
 
+import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -60,7 +61,7 @@ class HomeActivity : AppCompatActivity() {
     private fun <T> navigateTo(cls: Class<T>) {
         val intent = Intent(this, cls)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        startActivity(intent)
-        overridePendingTransition(0, 0)
+        val options = ActivityOptions.makeCustomAnimation(this, 0, 0)
+        startActivity(intent, options.toBundle())
     }
 }

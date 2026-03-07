@@ -67,7 +67,9 @@ class RegisterActivity : AppCompatActivity() {
                     binding.btnRegister.alpha = 0.6f
                 }
                 is AuthState.Success -> {
-                    SessionManager(this).saveToken(state.token)
+                    val session = SessionManager(this)
+                    session.saveToken(state.token)
+                    session.saveUserInfo(state.user)
                     navigateToHome()
                 }
                 is AuthState.Error -> {
