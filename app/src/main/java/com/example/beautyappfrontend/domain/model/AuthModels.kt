@@ -29,7 +29,6 @@ data class AuthTokens(
 
 data class AuthUserInfo(
     val id: Int? = null,
-    val username: String? = null,
     val email: String? = null,
     @SerializedName("first_name") val firstName: String? = null,
     @SerializedName("last_name") val lastName: String? = null,

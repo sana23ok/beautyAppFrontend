@@ -19,7 +19,7 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = repository.login(email, password)
-                _authState.value = AuthState.Success(response.authToken, response.user)
+                _authState.value = AuthState.Success(response.authToken)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Login failed")
             }
@@ -31,7 +31,7 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = repository.register(username, email, password)
-                _authState.value = AuthState.Success(response.authToken, response.user)
+                _authState.value = AuthState.Success(response.authToken)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Registration failed")
             }
