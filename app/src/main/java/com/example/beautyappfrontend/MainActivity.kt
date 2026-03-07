@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.beautyappfrontend.ui.screens.WelcomeScreen
 import com.example.beautyappfrontend.ui.theme.BeautyAppFrontendTheme
-import com.example.beautyappfrontend.ui.screens.SearchActivity
+import com.example.beautyappfrontend.ui.screens.SearchPageActivity
 import com.example.beautyappfrontend.ui.screens.AnalysisResultActivity
 
 class MainActivity : ComponentActivity() {
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
             BeautyAppFrontendTheme {
                 WelcomeScreen(
                     onNavigateToSearch = {
-                        val intent = Intent(this, SearchActivity::class.java)
+                        val intent = Intent(this, SearchPageActivity::class.java)
                         startActivity(intent)
                     },
 

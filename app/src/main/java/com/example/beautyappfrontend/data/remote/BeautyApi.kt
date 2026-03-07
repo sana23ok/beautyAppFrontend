@@ -20,6 +20,16 @@ interface BeautyApi {
     @GET("api/masters/")
     suspend fun getSpecialists(): List<Specialist>
 
+    @GET("api/masters/")
+    suspend fun searchSpecialists(
+        @retrofit2.http.Query("q")               query: String?          = null,
+        @retrofit2.http.Query("location")        location: String?       = null,
+        @retrofit2.http.Query("specialisation")  specialisation: String? = null,
+        @retrofit2.http.Query("experience")      experience: String?     = null,
+        @retrofit2.http.Query("price_max")       priceMax: Int?          = null,
+        @retrofit2.http.Query("page")            page: Int?              = null
+    ): Response<List<Specialist>>
+
     // TODO: add {id} to URL when backend is ready
     @GET("api/test_results/")
     suspend fun getAnalysisResult(@Path("id") id: Int): Response<AnalysisResponse>

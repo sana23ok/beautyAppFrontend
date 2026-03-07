@@ -3,20 +3,26 @@ package com.example.beautyappfrontend.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.domain.model.Specialist
 
-class SpecialistAdapter(private var specialists: List<Specialist>) :
-    RecyclerView.Adapter<SpecialistAdapter.SpecialistViewHolder>() {
+class SpecialistAdapter(
+    private var specialists: List<Specialist>,
+    private val onViewClick: ((Specialist) -> Unit)? = null,
+    private val onMessageClick: ((Specialist) -> Unit)? = null
+) : RecyclerView.Adapter<SpecialistAdapter.SpecialistViewHolder>() {
 
     class SpecialistViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val name: TextView = view.findViewById(R.id.tvName)
-        val specialization: TextView = view.findViewById(R.id.tvSpecialization)
-        val rating: TextView = view.findViewById(R.id.tvRating)
-        val avatar: ImageView = view.findViewById(R.id.ivAvatar)
+        val name: TextView         = view.findViewById(R.id.tvName)
+        val location: TextView     = view.findViewById(R.id.tvLocation)
+        val description: TextView  = view.findViewById(R.id.tvDescription)
+        val avatar: ImageView      = view.findViewById(R.id.ivAvatar)
+        val btnView: Button        = view.findViewById(R.id.btnView)
+        val btnMessage: Button     = view.findViewById(R.id.btnMessage)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SpecialistViewHolder {
@@ -26,14 +32,12 @@ class SpecialistAdapter(private var specialists: List<Specialist>) :
     }
 
     override fun onBindViewHolder(holder: SpecialistViewHolder, position: Int) {
-        val specialist = specialists[position]
-
-        holder.name.text = specialist.name
-        holder.specialization.text = specialist.specialization
-        holder.rating.text = specialist.rating.toString()
-
-        // Пізніше тут буде завантаження фото через Glide:
-        // Glide.with(holder.itemView).load(specialist.imageUrl).into(holder.avatar)
+        val s = specialists[position]
+        holder.name.text        = s.name
+        holder.location.text    = s.location ?: "—"
+        holder.description.text = s.description ?: ""
+        holder.btnView.setOnClickListener    { onViewClick?.invoke(s) }
+        holder.btnMessage.setOnClickListener { onMessageClick?.invoke(s) }
     }
 
     override fun getItemCount() = specialists.size
