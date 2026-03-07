@@ -6,163 +6,46 @@
     android:background="@color/auth_background"
     android:orientation="vertical">
 
-    <!-- ── Header: "Selfeera" + profile icon ── -->
-    <LinearLayout
+    <!-- ── App bar ── -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/auth_background"
         android:elevation="2dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="12dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:text="Selfeera"
-            android:textColor="@color/text_primary"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <ImageView
-            android:id="@+id/iv_profile_icon"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="@drawable/bg_profile_photo"
-            android:padding="7dp"
-            android:src="@drawable/ic_nav_profile"
-            android:tint="@color/guava_sage" />
-    </LinearLayout>
+        app:title="Search"
+        app:titleTextColor="@color/text_primary" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/divider_color" />
 
-    <!-- ── "Find your specialist" + search icon ── -->
+    <!-- ── Empty content placeholder ── -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="14dp"
-        android:paddingBottom="6dp">
-
-        <EditText
-            android:id="@+id/et_search"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_search_rounded"
-            android:drawablePadding="10dp"
-            android:hint="Find your specialist"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:singleLine="true"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"
-            android:textSize="15sp" />
-
-        <ImageView
-            android:id="@+id/btn_search_go"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_button_gradient"
-            android:padding="10dp"
-            android:src="@drawable/ic_nav_search"
-            android:tint="#FFFFFF" />
-    </LinearLayout>
-
-    <!-- ── Active filter chips (shown when filters applied) ── -->
-    <HorizontalScrollView
-        android:id="@+id/hsv_chips"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:scrollbars="none"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:id="@+id/ll_chips"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingBottom="6dp" />
-    </HorizontalScrollView>
-
-    <!-- ── "Results:" + filter icon ── -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="6dp">
-
-        <TextView
-            android:id="@+id/tv_results_count"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Results:"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <ImageView
-            android:id="@+id/btn_filter"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:padding="2dp"
-            android:src="@drawable/ic_filter" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="@color/divider_color" />
-
-    <!-- ── Specialist list ── -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_specialists"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingTop="6dp"
-        android:paddingBottom="8dp" />
-
-    <!-- ── Pagination row ── -->
-    <LinearLayout
-        android:id="@+id/ll_pagination"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/auth_background"
         android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingTop="8dp"
-        android:paddingBottom="4dp"
-        android:visibility="gone" />
+        android:orientation="vertical">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/divider_color" />
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:alpha="0.25"
+            android:src="@drawable/ic_nav_search" />
 
-    <!-- ── Bottom navigation (same as all other pages) ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Search coming soon"
+            android:textColor="@color/text_hint"
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+    <!-- ── Bottom navigation ── -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
