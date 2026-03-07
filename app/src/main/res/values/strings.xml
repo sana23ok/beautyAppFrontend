@@ -3,4 +3,23 @@
     <string name="colour_type">Colour Type</string>
     <string name="general_style">General Style..</string>
     <string name="name">Name</string>
+
+    <!-- Auth screens -->
+    <string name="sign_in">Sign in</string>
+    <string name="sign_up">Sign up</string>
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="full_name">Full name</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="log_in">Log in</string>
+    <string name="register">Register</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="sign_up_with_google">Sign up with Google</string>
+    <string name="no_account">Don\'t have an account?\u00A0</string>
+    <string name="create_account">Create</string>
+    <string name="already_account">Already have an account?\u00A0</string>
+    <string name="sign_in_link">Sign in</string>
+    <string name="or">or</string>
 </resources>

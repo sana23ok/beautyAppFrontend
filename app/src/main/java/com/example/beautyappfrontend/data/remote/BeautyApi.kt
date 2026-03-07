@@ -18,6 +18,6 @@ interface BeautyApi {
     suspend fun getSpecialists(): List<Specialist>
 
     // {id}/ ad id when it's ready
-    @GET("api/test_resuts/")
+    @GET("api/test_results/")
     suspend fun getAnalysisResult(@Path("id") id: Int): Response<AnalysisResponse>
 }
