@@ -15,6 +15,10 @@ data class RegisterRequest(
     val password: String
 )
 
+data class GoogleAuthRequest(
+    @SerializedName("id_token") val idToken: String
+)
+
 // ── Response ──────────────────────────────────────────────────────────────────
 // Backend returns:
 // {

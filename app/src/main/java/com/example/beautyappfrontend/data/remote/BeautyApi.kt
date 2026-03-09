@@ -2,6 +2,7 @@ package com.example.beautyappfrontend.data.remote
 
 import com.example.beautyappfrontend.domain.model.AnalysisResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
+import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.Specialist
@@ -39,4 +40,7 @@ interface BeautyApi {
 
     @POST("api/auth/register/")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+
+    @POST("api/auth/google/")
+    suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<AuthResponse>
 }

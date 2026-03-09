@@ -38,6 +38,18 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun googleSignIn(idToken: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                val response = repository.googleSignIn(idToken)
+                _authState.value = AuthState.Success(response.authToken, response.user)
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Google Sign-In failed")
+            }
+        }
+    }
+
     fun resetState() {
         _authState.value = AuthState.Idle
     }
