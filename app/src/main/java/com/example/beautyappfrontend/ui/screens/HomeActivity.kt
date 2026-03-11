@@ -15,6 +15,7 @@ import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.databinding.ActivityHomeBinding
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
+import com.example.beautyappfrontend.utils.SessionManager
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
@@ -26,9 +27,11 @@ class HomeActivity : AppCompatActivity() {
     private data class Question(val key: String, val options: List<QuizOption>)
 
     private val gson = Gson()
+    private lateinit var sessionManager: SessionManager
     private val selectedAnswers = mutableMapOf<String, String>()
     private val chipsByQuestion = mutableMapOf<String, MutableList<TextView>>()
 
+    private var hasSavedResult = false
     private var isTestExpanded = true
     private var isResultsExpanded = false
 
@@ -85,6 +88,7 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        sessionManager = SessionManager(this)
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
@@ -94,7 +98,6 @@ class HomeActivity : AppCompatActivity() {
         restoreSavedState()
 
         binding.btnAnalyse.setOnClickListener { onAnalyseClicked() }
-        binding.btnRetakeTest.setOnClickListener { expandTestForRetake() }
 
         setupBottomNav()
     }
@@ -138,10 +141,12 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateSectionState() {
+        binding.headerResults.visibility = if (hasSavedResult) View.VISIBLE else View.GONE
         binding.testContent.visibility = if (isTestExpanded) View.VISIBLE else View.GONE
-        binding.resultsContent.visibility = if (isResultsExpanded) View.VISIBLE else View.GONE
+        binding.resultsContent.visibility = if (hasSavedResult && isResultsExpanded) View.VISIBLE else View.GONE
         binding.ivTestChevron.rotation = if (isTestExpanded) 90f else 0f
         binding.ivResultsChevron.rotation = if (isResultsExpanded) 90f else 0f
+        binding.btnAnalyse.text = if (hasSavedResult) "Retake test" else "Analyze results"
     }
 
     private fun selectChip(
@@ -211,6 +216,7 @@ class HomeActivity : AppCompatActivity() {
                     val result = response.body()
                     if (result != null) {
                         saveLatestState(request, result)
+                        hasSavedResult = true
                         renderResult(result)
                         isTestExpanded = false
                         isResultsExpanded = true
@@ -241,15 +247,16 @@ class HomeActivity : AppCompatActivity() {
     ) {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .edit()
-            .putString(KEY_LAST_REQUEST, gson.toJson(request))
-            .putString(KEY_LAST_RESULT, gson.toJson(result))
+            .putString(getLastRequestKey(), gson.toJson(request))
+            .putString(getLastResultKey(), gson.toJson(result))
             .apply()
     }
 
     private fun restoreSavedState() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        hasSavedResult = false
 
-        prefs.getString(KEY_LAST_REQUEST, null)?.let { json ->
+        prefs.getString(getLastRequestKey(), null)?.let { json ->
             runCatching {
                 gson.fromJson(json, AppearanceTestRequest::class.java)
             }.getOrNull()?.let { request ->
@@ -257,15 +264,26 @@ class HomeActivity : AppCompatActivity() {
             }
         }
 
-        prefs.getString(KEY_LAST_RESULT, null)?.let { json ->
+        prefs.getString(getLastResultKey(), null)?.let { json ->
             runCatching {
                 gson.fromJson(json, AppearanceTestResponse::class.java)
             }.getOrNull()?.let { result ->
+                hasSavedResult = true
                 renderResult(result)
                 isTestExpanded = false
                 isResultsExpanded = true
                 updateSectionState()
             }
+        }
+
+        if (!hasSavedResult) {
+            binding.tvTestSubtitle.text = "Answer a few questions to get your palette and body type"
+            binding.tvResultsSubtitle.text = "No result yet"
+            binding.tvNoResults.visibility = View.VISIBLE
+            binding.resultsDetails.visibility = View.GONE
+            isTestExpanded = true
+            isResultsExpanded = false
+            updateSectionState()
         }
     }
 
@@ -298,6 +316,7 @@ class HomeActivity : AppCompatActivity() {
         val colorType = result.analysisResult.colorType
         val bodyType = result.analysisResult.bodyType
 
+        hasSavedResult = true
         binding.tvResultsSubtitle.text = "Latest result saved"
         binding.tvTestSubtitle.text = "Your latest result is saved below"
         binding.tvNoResults.visibility = View.GONE
@@ -341,7 +360,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun expandTestForRetake() {
         isTestExpanded = true
-        isResultsExpanded = false
+        isResultsExpanded = hasSavedResult
         updateSectionState()
         binding.testContent.post {
             binding.testContent.requestFocus()
@@ -382,4 +401,18 @@ class HomeActivity : AppCompatActivity() {
         private const val KEY_LAST_REQUEST = "last_request"
         private const val KEY_LAST_RESULT = "last_result"
     }
+
+    private fun getCurrentUserKey(): String {
+        val username = sessionManager.getUsername().trim()
+        if (username.isNotEmpty()) return "user_$username"
+
+        val email = sessionManager.getEmail().trim()
+        if (email.isNotEmpty()) return "user_$email"
+
+        return "user_anonymous"
+    }
+
+    private fun getLastRequestKey(): String = "${KEY_LAST_REQUEST}_${getCurrentUserKey()}"
+
+    private fun getLastResultKey(): String = "${KEY_LAST_RESULT}_${getCurrentUserKey()}"
 }

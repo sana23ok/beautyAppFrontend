@@ -45,7 +45,7 @@ interface BeautyApi {
 
     @POST("api/auth/google/")
     suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<AuthResponse>
-// ------------
+
     @POST("api/appearance_test/analyse/")
     suspend fun submitAppearanceTest(@Body request: AppearanceTestRequest): Response<AppearanceTestResponse>
 }

@@ -373,7 +373,7 @@
                     android:layout_marginTop="20dp"
                     android:layout_marginEnd="16dp"
                     android:background="@drawable/bg_button_gradient"
-                    android:text="Analyse My Style"
+                    android:text="Analyze results"
                     android:textColor="@color/white"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -400,7 +400,8 @@
                 android:paddingStart="16dp"
                 android:paddingTop="16dp"
                 android:paddingEnd="16dp"
-                android:paddingBottom="16dp">
+                android:paddingBottom="16dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -422,7 +423,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="No result yet"
-                        android:textColor="@color/text_hint"
+                        android:textColor="@color/black"
                         android:textSize="12sp" />
                 </LinearLayout>
 
@@ -457,7 +458,7 @@
                     android:paddingEnd="16dp"
                     android:paddingBottom="12dp"
                     android:text="Take the test once and your latest result will stay here."
-                    android:textColor="@color/text_hint"
+                    android:textColor="@color/black"
                     android:textSize="13sp" />
 
                 <LinearLayout
@@ -474,28 +475,26 @@
                         android:paddingStart="16dp"
                         android:paddingTop="8dp"
                         android:paddingEnd="16dp"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
+                        android:textColor="@color/black"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-                    <com.google.android.material.card.MaterialCardView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_marginTop="12dp"
                         android:layout_marginEnd="16dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="16dp">
+                        android:background="@drawable/bg_result_card_guava"
+                        android:elevation="4dp"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Colour type"
+                                android:textColor="@color/black"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
@@ -504,7 +503,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:textColor="@color/peach_dark"
+                                android:textColor="@color/black"
                                 android:textSize="22sp"
                                 android:textStyle="bold" />
 
@@ -512,7 +511,9 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="12dp"
-                                android:text="Palette:" />
+                                android:text="Palette:"
+                                android:textColor="@color/black"
+                                android:textStyle="bold" />
 
                             <LinearLayout
                                 android:id="@+id/paletteContainer"
@@ -525,29 +526,27 @@
                                 android:id="@+id/tvColorAdvice"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                                android:layout_marginTop="12dp"
+                                android:textColor="@color/black"
+                                android:textSize="14sp" />
+                    </LinearLayout>
 
-                    <com.google.android.material.card.MaterialCardView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_marginTop="12dp"
                         android:layout_marginEnd="16dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="16dp">
+                        android:background="@drawable/bg_result_card_guava_alt"
+                        android:elevation="4dp"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Body type"
+                                android:textColor="@color/black"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
 
@@ -556,7 +555,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:textColor="@color/green_dark"
+                                android:textColor="@color/black"
                                 android:textSize="22sp"
                                 android:textStyle="bold" />
 
@@ -564,22 +563,11 @@
                                 android:id="@+id/tvBodyAdvice"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                                android:layout_marginTop="12dp"
+                                android:textColor="@color/black"
+                                android:textSize="14sp" />
+                    </LinearLayout>
 
-                    <Button
-                        android:id="@+id/btnRetakeTest"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:background="@drawable/bg_option_box"
-                        android:text="Retake Test"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
