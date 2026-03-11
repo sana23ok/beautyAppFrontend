@@ -1,6 +1,8 @@
 package com.example.beautyappfrontend.data.remote
 
 import com.example.beautyappfrontend.domain.model.AnalysisResponse
+import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
+import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
@@ -43,4 +45,7 @@ interface BeautyApi {
 
     @POST("api/auth/google/")
     suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<AuthResponse>
+
+    @POST("api/appearance_test/analyse/")
+    suspend fun submitAppearanceTest(@Body request: AppearanceTestRequest): Response<AppearanceTestResponse>
 }
