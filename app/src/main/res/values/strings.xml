@@ -9,7 +9,7 @@
     <string name="sign_up">Sign up</string>
     <string name="username">Email</string>
     <string name="email">Email</string>
-    <string name="full_name">Username</string>
+    <string name="full_name">Full name</string>
     <string name="password">Password</string>
     <string name="confirm_password">Confirm password</string>
     <string name="forgot_password">Forgot password?</string>
@@ -24,4 +24,5 @@
     <string name="already_account">Already have an account?\u00A0</string>
     <string name="sign_in_link">Sign in</string>
     <string name="or">or</string>
+    <string name="register_as_master">I am a master and want a professional profile</string>
 </resources>

@@ -3,9 +3,11 @@ package com.example.beautyappfrontend.data.repository
 import android.util.Log
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.domain.model.AuthResponse
+import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.RegisterRequest
+import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.DebugLogger
 import com.google.gson.Gson
 
@@ -37,8 +39,22 @@ class AuthRepository {
         throw Exception("HTTP ${response.code()}: $errorBody")
     }
 
-    suspend fun register(username: String, email: String, password: String): AuthResponse {
-        val request = RegisterRequest(username, email, password)
+    suspend fun register(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        phoneNumber: String = "",
+        isMaster: Boolean = false,
+    ): AuthResponse {
+        val request = RegisterRequest(
+            email = email,
+            password = password,
+            firstName = firstName,
+            lastName = lastName,
+            phoneNumber = phoneNumber,
+            isMaster = isMaster,
+        )
         Log.d(TAG, ">>> REGISTER REQUEST body: ${gson.toJson(request)}")
 
         val response = RetrofitInstance.api.register(request)
@@ -55,6 +71,33 @@ class AuthRepository {
 
         val errorBody = response.errorBody()?.string() ?: "(empty)"
         Log.e(TAG, "<<< REGISTER ERROR body: $errorBody")
+        throw Exception("HTTP ${response.code()}: $errorBody")
+    }
+
+    suspend fun getCurrentUser(token: String): AuthUserInfo {
+        val response = RetrofitInstance.api.getCurrentUser("Bearer $token")
+        Log.d(TAG, "<<< GET ME RESPONSE HTTP ${response.code()}")
+
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+
+        val errorBody = response.errorBody()?.string() ?: "(empty)"
+        Log.e(TAG, "<<< GET ME ERROR body: $errorBody")
+        throw Exception("HTTP ${response.code()}: $errorBody")
+    }
+
+    suspend fun updateCurrentUser(token: String, request: UserProfileUpdateRequest): AuthUserInfo {
+        Log.d(TAG, ">>> UPDATE ME REQUEST body: ${gson.toJson(request)}")
+        val response = RetrofitInstance.api.updateCurrentUser("Bearer $token", request)
+        Log.d(TAG, "<<< UPDATE ME RESPONSE HTTP ${response.code()}")
+
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+
+        val errorBody = response.errorBody()?.string() ?: "(empty)"
+        Log.e(TAG, "<<< UPDATE ME ERROR body: $errorBody")
         throw Exception("HTTP ${response.code()}: $errorBody")
     }
 

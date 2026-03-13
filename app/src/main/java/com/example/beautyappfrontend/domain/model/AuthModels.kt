@@ -10,9 +10,12 @@ data class LoginRequest(
 )
 
 data class RegisterRequest(
-    val username: String,
     val email: String,
-    val password: String
+    val password: String,
+    @SerializedName("first_name") val firstName: String,
+    @SerializedName("last_name") val lastName: String,
+    @SerializedName("phone_number") val phoneNumber: String = "",
+    @SerializedName("is_master") val isMaster: Boolean = false,
 )
 
 data class GoogleAuthRequest(
@@ -38,7 +41,17 @@ data class AuthUserInfo(
     @SerializedName("first_name") val firstName: String? = null,
     @SerializedName("last_name") val lastName: String? = null,
     val avatar: String? = null,
-    @SerializedName("phone_number") val phoneNumber: String? = null
+    @SerializedName("phone_number") val phoneNumber: String? = null,
+    @SerializedName("is_master") val isMaster: Boolean? = null,
+    @SerializedName("client_profile_id") val clientProfileId: Int? = null,
+    @SerializedName("master_profile_id") val masterProfileId: Int? = null,
+)
+
+data class UserProfileUpdateRequest(
+    @SerializedName("first_name") val firstName: String? = null,
+    @SerializedName("last_name") val lastName: String? = null,
+    @SerializedName("phone_number") val phoneNumber: String? = null,
+    val avatar: String? = null,
 )
 
 data class AuthResponse(

@@ -22,6 +22,7 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRegisterBinding
     private lateinit var googleSignInClient: GoogleSignInClient
     private val viewModel: AuthViewModel by viewModels()
+    private var pendingIsMaster: Boolean = false
 
     companion object {
         private const val RC_GOOGLE_SIGN_IN = 9001
@@ -41,13 +42,14 @@ class RegisterActivity : AppCompatActivity() {
         observeAuthState()
 
         binding.btnRegister.setOnClickListener {
-            val username = binding.etFullName.text.toString().trim()
+            val fullName = binding.etFullName.text.toString().trim()
             val email    = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
             val confirm  = binding.etConfirmPassword.text.toString().trim()
+            val (firstName, lastName) = splitName(fullName)
 
-            if (username.isEmpty()) {
-                Toast.makeText(this, "Please enter a username", Toast.LENGTH_SHORT).show()
+            if (fullName.isEmpty()) {
+                Toast.makeText(this, "Please enter your full name", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
@@ -63,10 +65,18 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            viewModel.register(username, email, password)
+            pendingIsMaster = binding.cbRegisterAsMaster.isChecked
+            viewModel.register(
+                firstName = firstName,
+                lastName = lastName,
+                email = email,
+                password = password,
+                isMaster = pendingIsMaster,
+            )
         }
 
         binding.btnGoogleSignup.setOnClickListener {
+            pendingIsMaster = binding.cbRegisterAsMaster.isChecked
             // #region agent log
             DebugLogger.log(
                 runId = "pre-fix",
@@ -168,7 +178,8 @@ class RegisterActivity : AppCompatActivity() {
                     val session = SessionManager(this)
                     session.saveToken(state.token)
                     session.saveUserInfo(state.user)
-                    navigateToHome()
+                    session.saveIsMaster(state.user?.isMaster == true || pendingIsMaster)
+                    navigateAfterRegistration()
                 }
                 is AuthState.Error -> {
                     binding.btnRegister.isEnabled = true
@@ -186,9 +197,21 @@ class RegisterActivity : AppCompatActivity() {
         }
     }
 
-    private fun navigateToHome() {
-        val intent = Intent(this, HomeActivity::class.java)
+    private fun navigateAfterRegistration() {
+        val destination = if (pendingIsMaster) {
+            ProfileActivity::class.java
+        } else {
+            HomeActivity::class.java
+        }
+        val intent = Intent(this, destination)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
+    }
+
+    private fun splitName(fullName: String): Pair<String, String> {
+        val parts = fullName.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        val firstName = parts.firstOrNull().orEmpty()
+        val lastName = parts.drop(1).joinToString(" ")
+        return firstName to lastName
     }
 }

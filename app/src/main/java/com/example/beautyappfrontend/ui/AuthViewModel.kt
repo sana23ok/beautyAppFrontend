@@ -26,11 +26,25 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun register(username: String, email: String, password: String) {
+    fun register(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        phoneNumber: String = "",
+        isMaster: Boolean = false,
+    ) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = repository.register(username, email, password)
+                val response = repository.register(
+                    firstName = firstName,
+                    lastName = lastName,
+                    email = email,
+                    password = password,
+                    phoneNumber = phoneNumber,
+                    isMaster = isMaster,
+                )
                 _authState.value = AuthState.Success(response.authToken, response.user)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Registration failed")

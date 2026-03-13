@@ -170,6 +170,7 @@ class LoginActivity : AppCompatActivity() {
                 is AuthState.Success -> {
                     session.saveToken(state.token)
                     session.saveUserInfo(state.user)
+                    session.saveIsMaster(state.user?.isMaster == true)
                     navigateToHome()
                 }
                 is AuthState.Error -> {

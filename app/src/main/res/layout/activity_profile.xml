@@ -6,14 +6,13 @@
     android:background="@color/auth_background"
     android:orientation="vertical">
 
-    <!-- ── App bar ── -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/auth_background"
-        android:elevation="2dp"
-        app:title="Selfeera"
+        android:elevation="0dp"
+        app:title="Profile"
         app:titleTextColor="@color/text_primary" />
 
     <View
@@ -21,193 +20,474 @@
         android:layout_height="1dp"
         android:background="@color/divider_color" />
 
-    <!-- ── Scrollable content ── -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:fillViewport="true"
         android:overScrollMode="never">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingTop="20dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="20dp">
+            android:paddingStart="18dp"
+            android:paddingTop="18dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="24dp">
 
-            <!-- ── "My Profile" section header ── -->
             <LinearLayout
+                android:id="@+id/layout_profile_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:background="@drawable/bg_google_button"
+                android:gravity="top"
+                android:orientation="horizontal"
+                android:padding="14dp">
 
-                <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
-                    android:layout_marginEnd="10dp"
-                    android:background="@drawable/bg_section_header" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="My Profile"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- ── Profile card ── -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:orientation="horizontal">
-
-                <!-- Avatar -->
                 <ImageView
                     android:id="@+id/iv_avatar"
-                    android:layout_width="90dp"
-                    android:layout_height="90dp"
+                    android:layout_width="110dp"
+                    android:layout_height="130dp"
                     android:background="@drawable/bg_profile_photo"
-                    android:padding="10dp"
                     android:scaleType="centerCrop"
                     android:src="@drawable/ic_nav_profile"
                     android:tint="@color/text_hint" />
 
-                <!-- Name + bio + button -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="14dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tv_name"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-medium"
                         android:text="Name Surname"
                         android:textColor="@color/text_primary"
-                        android:textSize="17sp"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_specialization"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Specialization"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_location_row"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_location"
+                            android:tint="@color/text_secondary" />
+
+                        <TextView
+                            android:id="@+id/tv_location"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="Location"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:minLines="4"
+                        android:text="Profile description"
+                        android:textColor="@color/text_hint"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tv_role"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_outlined_peach"
+                            android:paddingStart="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingEnd="10dp"
+                            android:paddingBottom="4dp"
+                            android:text="Client"
+                            android:textColor="@color/peach_dark"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_phone"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:text=""
+                            android:textColor="@color/text_hint"
+                            android:textSize="12sp" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/tv_email"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="6dp"
                         android:text="email@example.com"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/tv_phone"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text=""
                         android:textColor="@color/text_hint"
                         android:textSize="12sp" />
 
-                    <Button
-                        android:id="@+id/btn_edit"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:layout_marginTop="10dp"
-                        android:background="@drawable/bg_outlined_peach"
-                        android:paddingStart="14dp"
-                        android:paddingEnd="14dp"
-                        android:stateListAnimator="@null"
-                        android:text="Edit Information"
-                        android:textColor="@color/peach_dark"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btn_edit"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_outlined_peach"
+                            android:stateListAnimator="@null"
+                            android:text="Edit Information"
+                            android:textColor="@color/peach_dark"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btn_message"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_outlined_peach"
+                            android:stateListAnimator="@null"
+                            android:text="Message"
+                            android:textColor="@color/peach_dark"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- ── Log out button ── -->
+            <TextView
+                android:id="@+id/tv_master_helper"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Complete your master profile first, then continue editing it from the Edit Information window."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_save_master_profile"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_button_gradient"
+                android:stateListAnimator="@null"
+                android:text="Save master profile"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/layout_master_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Works:"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:alignmentMode="alignMargins"
+                    android:columnCount="2"
+                    android:useDefaultMargins="true">
+
+                    <ImageView
+                        android:id="@+id/iv_work_1"
+                        android:layout_width="0dp"
+                        android:layout_height="160dp"
+                        android:layout_columnWeight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/bg_option_box"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_nav_profile"
+                        android:tint="@color/text_hint" />
+
+                    <ImageView
+                        android:id="@+id/iv_work_2"
+                        android:layout_width="0dp"
+                        android:layout_height="160dp"
+                        android:layout_columnWeight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/bg_option_box"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_nav_profile"
+                        android:tint="@color/text_hint" />
+
+                    <ImageView
+                        android:id="@+id/iv_work_3"
+                        android:layout_width="0dp"
+                        android:layout_height="160dp"
+                        android:layout_columnWeight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/bg_option_box"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_nav_profile"
+                        android:tint="@color/text_hint" />
+
+                    <ImageView
+                        android:id="@+id/iv_work_4"
+                        android:layout_width="0dp"
+                        android:layout_height="160dp"
+                        android:layout_columnWeight="1"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/bg_option_box"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_nav_profile"
+                        android:tint="@color/text_hint" />
+                </GridLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="22dp"
+                    android:text="Time available for appointments:"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TableLayout
+                    android:id="@+id/table_schedule"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:shrinkColumns="*"
+                    android:stretchColumns="*">
+
+                    <TableRow>
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_schedule_header_cell"
+                            android:padding="10dp"
+                            android:text="Day"
+                            android:textColor="@color/white"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_schedule_header_cell"
+                            android:padding="10dp"
+                            android:text="Available time"
+                            android:textColor="@color/white"
+                            android:textStyle="bold" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Mon"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_mon"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Tue"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_tue"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Wed"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_wed"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Thu"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_thu"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Fri"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_fri"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Sat"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_sat"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+
+                    <TableRow>
+                        <TextView
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Sun"
+                            android:textColor="@color/text_primary" />
+                        <TextView
+                            android:id="@+id/tv_schedule_sun"
+                            android:background="@drawable/bg_schedule_cell"
+                            android:padding="10dp"
+                            android:text="Closed"
+                            android:textColor="@color/text_primary" />
+                    </TableRow>
+                </TableLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_appointments_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="22dp"
+                        android:layout_marginEnd="10dp"
+                        android:background="@drawable/bg_button_gradient" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Booked Appointments:"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <include
+                    android:id="@+id/appointment_1"
+                    layout="@layout/item_appointment"
+                    android:layout_marginTop="8dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_color" />
+
+                <include
+                    android:id="@+id/appointment_2"
+                    layout="@layout/item_appointment" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_color" />
+
+                <include
+                    android:id="@+id/appointment_3"
+                    layout="@layout/item_appointment" />
+            </LinearLayout>
+
             <Button
                 android:id="@+id/btn_logout"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="24dp"
                 android:background="@drawable/bg_button_gradient"
                 android:stateListAnimator="@null"
                 android:text="Log out"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
-
-            <!-- ── Divider ── -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="22dp"
-                android:layout_marginBottom="4dp"
-                android:background="@color/divider_color" />
-
-            <!-- ── "Booked Appointments" section header ── -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
-                    android:layout_marginEnd="10dp"
-                    android:background="@drawable/bg_button_gradient" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="Booked Appointments:"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- ── Appointment placeholder items ── -->
-            <include
-                android:id="@+id/appointment_1"
-                layout="@layout/item_appointment"
-                android:layout_marginTop="8dp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider_color" />
-
-            <include
-                android:id="@+id/appointment_2"
-                layout="@layout/item_appointment" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider_color" />
-
-            <include
-                android:id="@+id/appointment_3"
-                layout="@layout/item_appointment" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider_color" />
-
         </LinearLayout>
     </ScrollView>
 
-    <!-- ── Bottom navigation ── -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"

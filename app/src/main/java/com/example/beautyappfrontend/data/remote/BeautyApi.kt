@@ -4,14 +4,20 @@ import com.example.beautyappfrontend.domain.model.AnalysisResponse
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
+import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
+import com.example.beautyappfrontend.domain.model.MasterProfileRequest
+import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.domain.model.TestResponse
+import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -45,6 +51,35 @@ interface BeautyApi {
 
     @POST("api/auth/google/")
     suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<AuthResponse>
+
+    @GET("api/auth/me/")
+    suspend fun getCurrentUser(@Header("Authorization") authHeader: String): Response<AuthUserInfo>
+
+    @PATCH("api/auth/me/")
+    suspend fun updateCurrentUser(
+        @Header("Authorization") authHeader: String,
+        @Body request: UserProfileUpdateRequest,
+    ): Response<AuthUserInfo>
+
+    @POST("api/masters/")
+    suspend fun createMasterProfile(
+        @Header("Authorization") authHeader: String,
+        @Body request: MasterProfileRequest,
+    ): Response<MasterProfileResponse>
+
+    @GET("api/masters/me/")
+    suspend fun getMyMasterProfile(
+        @Header("Authorization") authHeader: String,
+    ): Response<MasterProfileResponse>
+
+    @PATCH("api/masters/me/")
+    suspend fun updateMyMasterProfile(
+        @Header("Authorization") authHeader: String,
+        @Body request: MasterProfileRequest,
+    ): Response<MasterProfileResponse>
+
+    @GET("api/masters/{id}/")
+    suspend fun getMasterProfile(@Path("id") id: Int): Response<MasterProfileResponse>
 
     @POST("api/appearance_test/analyse/")
     suspend fun submitAppearanceTest(@Body request: AppearanceTestRequest): Response<AppearanceTestResponse>
