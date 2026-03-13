@@ -7,6 +7,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import coil.transform.CircleCropTransformation
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.domain.model.Specialist
 
@@ -34,8 +36,22 @@ class SpecialistAdapter(
     override fun onBindViewHolder(holder: SpecialistViewHolder, position: Int) {
         val s = specialists[position]
         holder.name.text        = s.name
-        holder.location.text    = s.location ?: "—"
-        holder.description.text = s.description ?: ""
+        holder.location.text    = s.location
+        holder.description.text = s.description.ifBlank {
+            if (s.specialization.isNotBlank()) s.specialization else "—"
+        }
+
+        if (s.imageUrl.isNotBlank()) {
+            holder.avatar.load(s.imageUrl) {
+                crossfade(true)
+                placeholder(R.drawable.ic_nav_profile)
+                error(R.drawable.ic_nav_profile)
+                transformations(CircleCropTransformation())
+            }
+        } else {
+            holder.avatar.setImageResource(R.drawable.ic_nav_profile)
+        }
+
         holder.btnView.setOnClickListener    { onViewClick?.invoke(s) }
         holder.btnMessage.setOnClickListener { onMessageClick?.invoke(s) }
     }

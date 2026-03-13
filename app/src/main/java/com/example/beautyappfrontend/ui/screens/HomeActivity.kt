@@ -90,14 +90,15 @@ class HomeActivity : AppCompatActivity() {
         setContentView(binding.root)
         sessionManager = SessionManager(this)
 
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
-
         buildQuestions()
         setupSectionToggles()
         restoreSavedState()
 
         binding.btnAnalyse.setOnClickListener { onAnalyseClicked() }
+
+        binding.ivProfileIcon.setOnClickListener {
+            navigateTo(ProfileActivity::class.java)
+        }
 
         setupBottomNav()
     }

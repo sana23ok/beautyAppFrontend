@@ -14,12 +14,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.beautyappfrontend.R
+import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.databinding.ActivitySearchPageBinding
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.ui.SpecialistAdapter
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import kotlinx.coroutines.launch
 
 class SearchPageActivity : AppCompatActivity() {
 
@@ -31,33 +34,11 @@ class SearchPageActivity : AppCompatActivity() {
     private var filterExperience     = ""
     private var filterPriceMax: Int? = null
     private var currentPage          = 1
-    private val totalPages           = 4
+    private var totalPages           = 1
+    private var isLoading            = false
 
     companion object {
         private const val TAG = "SearchPage"
-
-        private val PLACEHOLDER_LIST = listOf(
-            Specialist(
-                id = 1, name = "Anna Kovalenko", specialization = "Makeup Artist",
-                rating = 4.9, imageUrl = "", location = "Kyiv",
-                description = "Professional makeup artist with 5+ years of experience in bridal and editorial looks."
-            ),
-            Specialist(
-                id = 2, name = "Maria Petrenko", specialization = "Hair Stylist",
-                rating = 4.7, imageUrl = "", location = "Lviv",
-                description = "Specialises in colour, balayage and creative cuts. Trained in Paris."
-            ),
-            Specialist(
-                id = 3, name = "Olena Sydorenko", specialization = "Nail Technician",
-                rating = 4.8, imageUrl = "", location = "Kyiv",
-                description = "Gel and acrylic nails, nail art, manicure & pedicure. Booking available weekdays."
-            ),
-            Specialist(
-                id = 4, name = "Iryna Marchenko", specialization = "Brow Artist",
-                rating = 4.6, imageUrl = "", location = "Odesa",
-                description = "Brow shaping, microblading and lamination. Natural-looking results guaranteed."
-            )
-        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +53,7 @@ class SearchPageActivity : AppCompatActivity() {
         setupProfileIcon()
         setupBottomNav()
 
-        loadSpecialists(PLACEHOLDER_LIST)
+        fetchMasters()
     }
 
     // ── RecyclerView ──────────────────────────────────────────────────────────
@@ -96,7 +77,71 @@ class SearchPageActivity : AppCompatActivity() {
     private fun loadSpecialists(list: List<Specialist>) {
         adapter.updateData(list)
         binding.tvResultsCount.text =
-            if (list.isEmpty()) "No results found" else "Results: ${list.size} found"
+            if (list.isEmpty()) "No masters found" else "Results: ${list.size} found"
+    }
+
+    private fun fetchMasters(query: String? = null) {
+        if (isLoading) return
+        isLoading = true
+
+        binding.tvResultsCount.text = "Loading..."
+
+        lifecycleScope.launch {
+            try {
+                val searchQuery = buildSearchQuery(query)
+                Log.d(TAG, "Fetching masters with query: $searchQuery")
+
+                val response = RetrofitInstance.api.searchSpecialists(
+                    query = searchQuery.ifBlank { null },
+                    page = currentPage,
+                )
+
+                if (response.isSuccessful) {
+                    val masters = response.body() ?: emptyList()
+                    Log.d(TAG, "Fetched ${masters.size} masters from backend")
+                    loadSpecialists(masters)
+                    updatePaginationFromResults(masters.size)
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: "Unknown error"
+                    Log.e(TAG, "Failed to fetch masters: HTTP ${response.code()} - $errorBody")
+                    loadSpecialists(emptyList())
+                    Toast.makeText(
+                        this@SearchPageActivity,
+                        "Failed to load masters",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching masters", e)
+                loadSpecialists(emptyList())
+                Toast.makeText(
+                    this@SearchPageActivity,
+                    "Error: ${e.message}",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    private fun buildSearchQuery(query: String?): String {
+        val parts = mutableListOf<String>()
+        if (!query.isNullOrBlank()) {
+            parts.add(query)
+        }
+        if (filterLocation.isNotBlank()) {
+            parts.add(filterLocation)
+        }
+        if (filterSpecialisation.isNotBlank()) {
+            parts.add(filterSpecialisation)
+        }
+        return parts.joinToString(" ")
+    }
+
+    private fun updatePaginationFromResults(count: Int) {
+        totalPages = if (count >= 10) 2 else 1
+        setupPagination()
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -115,8 +160,8 @@ class SearchPageActivity : AppCompatActivity() {
         val query = binding.etSearch.text.toString().trim()
         Log.d(TAG, "Search query='$query' loc=$filterLocation spec=$filterSpecialisation " +
                 "exp=$filterExperience price=$filterPriceMax")
-        // TODO: call API — RetrofitInstance.api.searchSpecialists(query, ...)
-        Toast.makeText(this, "Searching: \"$query\"", Toast.LENGTH_SHORT).show()
+        currentPage = 1
+        fetchMasters(query)
     }
 
     // ── Filter bottom sheet ───────────────────────────────────────────────────
@@ -167,8 +212,8 @@ class SearchPageActivity : AppCompatActivity() {
                     "exp=$filterExperience price=$filterPriceMax")
             dialog.dismiss()
             refreshChips()
-            // TODO: call API with filters
-            Toast.makeText(this, "Filters applied", Toast.LENGTH_SHORT).show()
+            currentPage = 1
+            fetchMasters(binding.etSearch.text.toString().trim())
         }
 
         dialog.show()
@@ -218,10 +263,12 @@ class SearchPageActivity : AppCompatActivity() {
                     else getColor(R.color.guava_sage)
                 )
                 setOnClickListener {
-                    currentPage = page
-                    Log.d(TAG, "Page $page selected")
-                    setupPagination()
-                    // TODO: call API for new page
+                    if (currentPage != page) {
+                        currentPage = page
+                        Log.d(TAG, "Page $page selected")
+                        setupPagination()
+                        fetchMasters(binding.etSearch.text.toString().trim())
+                    }
                 }
             }
             container.addView(tv)

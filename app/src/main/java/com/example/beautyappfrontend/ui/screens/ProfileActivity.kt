@@ -45,9 +45,6 @@ class ProfileActivity : AppCompatActivity() {
 
         session = SessionManager(this)
 
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
-
         populateUserData()
         setupClickListeners()
         setupBottomNav()
