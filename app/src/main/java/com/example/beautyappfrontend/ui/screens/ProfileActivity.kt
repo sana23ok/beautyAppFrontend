@@ -3,11 +3,14 @@ package com.example.beautyappfrontend.ui.screens
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -27,6 +30,10 @@ import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 
 class ProfileActivity : AppCompatActivity() {
 
@@ -34,6 +41,44 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var session: SessionManager
     private val authRepository = AuthRepository()
     private val masterRepository = MasterRepository()
+
+    private var pendingAvatarEditText: EditText? = null
+
+    private val pickImageLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri ?: return@registerForActivityResult
+        val editText = pendingAvatarEditText ?: return@registerForActivityResult
+        val token = session.getToken() ?: return@registerForActivityResult
+        lifecycleScope.launch {
+            try {
+                val file = copyUriToCacheFile(uri)
+                val part = MultipartBody.Part.createFormData(
+                    "photo",
+                    file.name,
+                    file.asRequestBody("image/*".toMediaTypeOrNull())
+                )
+                val url = authRepository.uploadAvatar(token, part)
+                editText.setText(url)
+                session.saveAvatarUrl(url)
+                if (session.isMaster()) session.saveMasterProfilePhoto(url)
+                populateUserData()
+                Toast.makeText(this@ProfileActivity, "Photo uploaded", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@ProfileActivity, e.message ?: "Upload failed", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun copyUriToCacheFile(uri: Uri): File {
+        val file = File(cacheDir, "upload_${System.currentTimeMillis()}.jpg")
+        contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        return file
+    }
 
     companion object {
         private const val TAG = "ProfileActivity"
@@ -297,6 +342,11 @@ class ProfileActivity : AppCompatActivity() {
         dialogBinding.etPhone.setText(session.getPhoneNumber())
         dialogBinding.etAvatar.setText(session.getAvatarUrl().orEmpty())
 
+        dialogBinding.btnUploadAvatar.setOnClickListener {
+            pendingAvatarEditText = dialogBinding.etAvatar
+            pickImageLauncher.launch("image/*")
+        }
+
         val dialog = AlertDialog.Builder(this)
             .setTitle("Edit profile")
             .setView(dialogBinding.root)
@@ -367,6 +417,11 @@ class ProfileActivity : AppCompatActivity() {
         val existingDraft = session.getMasterDraft()
         val dialogBinding = DialogMasterProfileEditBinding.inflate(layoutInflater)
         populateMasterDialogFields(dialogBinding, existingDraft)
+
+        dialogBinding.btnUploadProfilePhoto.setOnClickListener {
+            pendingAvatarEditText = dialogBinding.etMasterProfilePhoto
+            pickImageLauncher.launch("image/*")
+        }
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existingDraft.masterId == null) "Create master profile" else "Edit master profile")

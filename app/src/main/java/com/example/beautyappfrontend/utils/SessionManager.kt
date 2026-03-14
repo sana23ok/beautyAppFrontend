@@ -62,6 +62,14 @@ class SessionManager(context: Context) {
 
     fun getAvatarUrl(): String? = prefs.getString(KEY_AVATAR, null)
 
+    fun saveAvatarUrl(url: String) {
+        prefs.edit().putString(KEY_AVATAR, url).apply()
+    }
+
+    fun saveMasterProfilePhoto(url: String) {
+        prefs.edit().putString(KEY_MASTER_PROFILE_PHOTO, url).apply()
+    }
+
     fun getPhoneNumber(): String = prefs.getString(KEY_PHONE, "") ?: ""
 
     fun saveIsMaster(isMaster: Boolean) {

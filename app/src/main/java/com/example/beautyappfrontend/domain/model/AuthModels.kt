@@ -61,3 +61,7 @@ data class AuthResponse(
     val authToken: String
         get() = tokens?.access ?: ""
 }
+
+data class AvatarUploadResponse(
+    val url: String = "",
+)

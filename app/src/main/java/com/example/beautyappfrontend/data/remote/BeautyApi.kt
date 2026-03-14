@@ -19,13 +19,17 @@ import com.example.beautyappfrontend.domain.model.StartConversationRequest
 import com.example.beautyappfrontend.domain.model.TestResponse
 import com.example.beautyappfrontend.domain.model.MarkReadResponse
 import com.example.beautyappfrontend.domain.model.UnreadTotalResponse
+import com.example.beautyappfrontend.domain.model.AvatarUploadResponse
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface BeautyApi {
@@ -67,6 +71,13 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Body request: UserProfileUpdateRequest,
     ): Response<AuthUserInfo>
+
+    @Multipart
+    @POST("api/auth/upload_avatar/")
+    suspend fun uploadAvatar(
+        @Header("Authorization") authHeader: String,
+        @Part photo: MultipartBody.Part,
+    ): Response<AvatarUploadResponse>
 
     @POST("api/masters/")
     suspend fun createMasterProfile(

@@ -8,6 +8,7 @@ import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
+import okhttp3.MultipartBody
 import com.example.beautyappfrontend.utils.DebugLogger
 import com.google.gson.Gson
 
@@ -152,6 +153,15 @@ class AuthRepository {
 
         val errorBody = response.errorBody()?.string() ?: "(empty)"
         Log.e(TAG, "<<< GOOGLE AUTH ERROR body: $errorBody")
+        throw Exception("HTTP ${response.code()}: $errorBody")
+    }
+
+    suspend fun uploadAvatar(token: String, photoPart: MultipartBody.Part): String {
+        val response = RetrofitInstance.api.uploadAvatar("Bearer $token", photoPart)
+        if (response.isSuccessful) {
+            return response.body()?.url ?: throw Exception("Empty URL in response")
+        }
+        val errorBody = response.errorBody()?.string() ?: "(empty)"
         throw Exception("HTTP ${response.code()}: $errorBody")
     }
 }
