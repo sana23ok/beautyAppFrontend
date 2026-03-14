@@ -9,6 +9,18 @@ import com.example.beautyappfrontend.domain.model.StartConversationRequest
 
 class ChatRepository {
 
+    suspend fun getUnreadTotal(token: String): Int {
+        val response = RetrofitInstance.api.getUnreadTotal("Bearer $token")
+        if (response.isSuccessful) {
+            return response.body()?.unreadTotal ?: 0
+        }
+        return 0
+    }
+
+    suspend fun markMessagesRead(token: String, conversationId: Int) {
+        RetrofitInstance.api.markMessagesRead("Bearer $token", conversationId)
+    }
+
     suspend fun getConversations(token: String): List<Conversation> {
         val response = RetrofitInstance.api.getConversations("Bearer $token")
         if (response.isSuccessful) {

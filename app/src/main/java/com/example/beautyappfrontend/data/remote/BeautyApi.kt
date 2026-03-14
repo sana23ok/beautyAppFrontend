@@ -17,6 +17,8 @@ import com.example.beautyappfrontend.domain.model.SendMessageRequest
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.domain.model.StartConversationRequest
 import com.example.beautyappfrontend.domain.model.TestResponse
+import com.example.beautyappfrontend.domain.model.MarkReadResponse
+import com.example.beautyappfrontend.domain.model.UnreadTotalResponse
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -90,6 +92,11 @@ interface BeautyApi {
     suspend fun submitAppearanceTest(@Body request: AppearanceTestRequest): Response<AppearanceTestResponse>
 
     // Chat API
+    @GET("api/chat/unread_total/")
+    suspend fun getUnreadTotal(
+        @Header("Authorization") authHeader: String,
+    ): Response<UnreadTotalResponse>
+
     @GET("api/chat/conversations/")
     suspend fun getConversations(
         @Header("Authorization") authHeader: String,
@@ -119,4 +126,10 @@ interface BeautyApi {
         @Path("id") conversationId: Int,
         @Body request: SendMessageRequest,
     ): Response<MessageResponse>
+
+    @POST("api/chat/conversations/{id}/read/")
+    suspend fun markMessagesRead(
+        @Header("Authorization") authHeader: String,
+        @Path("id") conversationId: Int,
+    ): Response<MarkReadResponse>
 }

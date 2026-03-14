@@ -56,6 +56,14 @@ data class SendMessageRequest(
     val text: String,
 )
 
+data class UnreadTotalResponse(
+    @SerializedName("unread_total") val unreadTotal: Int = 0,
+)
+
+data class MarkReadResponse(
+    @SerializedName("marked_read") val markedRead: Int = 0,
+)
+
 data class Conversation(
     val id: Int,
     val participantId: Int,

@@ -24,6 +24,7 @@ import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
+import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
 
@@ -49,6 +50,11 @@ class ProfileActivity : AppCompatActivity() {
         setupClickListeners()
         setupBottomNav()
         syncProfileFromBackend()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
     }
 
     private fun populateUserData() {

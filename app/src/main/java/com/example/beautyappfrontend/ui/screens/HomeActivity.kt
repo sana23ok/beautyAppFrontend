@@ -15,6 +15,7 @@ import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.databinding.ActivityHomeBinding
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
+import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -101,6 +102,11 @@ class HomeActivity : AppCompatActivity() {
         }
 
         setupBottomNav()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ChatBadgeHelper.updateBadge(binding.bottomNav, sessionManager.getToken(), lifecycleScope)
     }
 
     private fun buildQuestions() {

@@ -26,4 +26,5 @@
     <color name="guava_cream">#ECEDDF</color>
     <color name="guava_light_green">#CBEFAA</color>
     <color name="guava_sage">#B4BD9A</color>
+    <color name="red_primary">#E53935</color>
 </resources>

@@ -15,6 +15,7 @@ import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivityChatBinding
 import com.example.beautyappfrontend.domain.model.Conversation
 import com.example.beautyappfrontend.ui.ConversationAdapter
+import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
 
@@ -46,6 +47,7 @@ class ChatActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadConversations()
+        ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
     }
 
     private fun setupRecyclerView() {

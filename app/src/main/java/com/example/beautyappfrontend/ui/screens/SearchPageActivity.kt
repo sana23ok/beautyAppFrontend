@@ -22,6 +22,7 @@ import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivitySearchPageBinding
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.ui.SpecialistAdapter
+import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
@@ -60,6 +61,11 @@ class SearchPageActivity : AppCompatActivity() {
         setupBottomNav()
 
         fetchMasters()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
     }
 
     // ── RecyclerView ──────────────────────────────────────────────────────────

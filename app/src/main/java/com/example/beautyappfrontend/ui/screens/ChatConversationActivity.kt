@@ -17,6 +17,7 @@ import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivityChatConversationBinding
 import com.example.beautyappfrontend.domain.model.ChatMessage
 import com.example.beautyappfrontend.ui.MessageAdapter
+import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
 
@@ -63,12 +64,14 @@ class ChatConversationActivity : AppCompatActivity() {
         setupInputBar()
         setupBottomNav()
 
+        markConversationAsRead()
         loadMessages()
     }
 
     override fun onResume() {
         super.onResume()
         startAutoRefresh()
+        ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
     }
 
     override fun onPause() {
@@ -161,6 +164,18 @@ class ChatConversationActivity : AppCompatActivity() {
 
         binding.btnAttach.setOnClickListener {
             Toast.makeText(this, "Attach file", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun markConversationAsRead() {
+        val token = session.getToken()
+        if (token.isNullOrBlank() || conversationId == 0) return
+        lifecycleScope.launch {
+            try {
+                chatRepository.markMessagesRead(token, conversationId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error marking messages read", e)
+            }
         }
     }
 
