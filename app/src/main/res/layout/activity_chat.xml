@@ -98,16 +98,30 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="No messages yet"
-            android:textColor="@color/text_hint"
-            android:textSize="15sp" />
+            android:textColor="@color/text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="280dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Start a conversation with a master"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Start chatting with specialists available on the platform"
             android:textColor="@color/guava_sage"
-            android:textSize="13sp" />
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btn_find_specialists"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_button_gradient"
+            android:paddingHorizontal="24dp"
+            android:text="Find Specialists"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
     </LinearLayout>
 

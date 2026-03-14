@@ -18,9 +18,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
+import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivitySearchPageBinding
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.ui.SpecialistAdapter
+import com.example.beautyappfrontend.utils.SessionManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
 
@@ -28,6 +30,8 @@ class SearchPageActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySearchPageBinding
     private lateinit var adapter: SpecialistAdapter
+    private lateinit var session: SessionManager
+    private val chatRepository = ChatRepository()
 
     private var filterLocation       = ""
     private var filterSpecialisation = ""
@@ -45,6 +49,8 @@ class SearchPageActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySearchPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        session = SessionManager(this)
 
         setupRecyclerView()
         setupSearch()
@@ -67,11 +73,52 @@ class SearchPageActivity : AppCompatActivity() {
             },
             onMessageClick = { s ->
                 Log.d(TAG, "Message: ${s.name}")
-                Toast.makeText(this, "Message ${s.name}", Toast.LENGTH_SHORT).show()
+                startConversationWith(s)
             }
         )
         binding.rvSpecialists.layoutManager = LinearLayoutManager(this)
         binding.rvSpecialists.adapter       = adapter
+    }
+
+    private fun startConversationWith(specialist: Specialist) {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, "Please log in to send messages", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val participantUserId = specialist.userId
+        if (participantUserId == null) {
+            Toast.makeText(this, "Cannot message this specialist", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "Specialist ${specialist.name} has no user_id")
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                Toast.makeText(this@SearchPageActivity, "Starting conversation...", Toast.LENGTH_SHORT).show()
+
+                val response = chatRepository.startConversation(
+                    token = token,
+                    participantId = participantUserId,
+                )
+
+                val intent = Intent(this@SearchPageActivity, ChatConversationActivity::class.java).apply {
+                    putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, response.id)
+                    putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_NAME, response.participant?.displayName ?: specialist.name)
+                    putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR, response.participant?.avatar ?: specialist.imageUrl)
+                    putExtra(ChatConversationActivity.EXTRA_IS_ONLINE, response.participant?.isOnline ?: false)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting conversation", e)
+                Toast.makeText(
+                    this@SearchPageActivity,
+                    "Failed to start conversation: ${e.message}",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
     }
 
     private fun loadSpecialists(list: List<Specialist>) {

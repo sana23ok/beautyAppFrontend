@@ -5,59 +5,29 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.beautyappfrontend.R
+import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivityChatBinding
 import com.example.beautyappfrontend.domain.model.Conversation
 import com.example.beautyappfrontend.ui.ConversationAdapter
+import com.example.beautyappfrontend.utils.SessionManager
+import kotlinx.coroutines.launch
 
 class ChatActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityChatBinding
     private lateinit var adapter: ConversationAdapter
+    private lateinit var session: SessionManager
+    private val chatRepository = ChatRepository()
     private var allConversations: List<Conversation> = emptyList()
 
     companion object {
-        private val SAMPLE_CONVERSATIONS = listOf(
-            Conversation(
-                id = 1,
-                participantId = 1,
-                participantName = "Anna Kovalenko",
-                lastMessage = "Sure! I can fit you in at 3pm tomorrow.",
-                lastMessageTime = "10:30",
-                unreadCount = 2,
-                isOnline = true,
-            ),
-            Conversation(
-                id = 2,
-                participantId = 2,
-                participantName = "Maria Petrenko",
-                lastMessage = "Thank you for booking!",
-                lastMessageTime = "Yesterday",
-                unreadCount = 0,
-                isOnline = false,
-            ),
-            Conversation(
-                id = 3,
-                participantId = 3,
-                participantName = "Olena Sydorenko",
-                lastMessage = "Your appointment is confirmed.",
-                lastMessageTime = "Mon",
-                unreadCount = 0,
-                isOnline = true,
-            ),
-            Conversation(
-                id = 4,
-                participantId = 4,
-                participantName = "Iryna Marchenko",
-                lastMessage = "See you on Friday!",
-                lastMessageTime = "Sun",
-                unreadCount = 1,
-                isOnline = false,
-            ),
-        )
+        private const val TAG = "ChatActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,11 +35,16 @@ class ChatActivity : AppCompatActivity() {
         binding = ActivityChatBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        session = SessionManager(this)
+
         setupRecyclerView()
         setupSearch()
         setupProfileIcon()
         setupBottomNav()
+    }
 
+    override fun onResume() {
+        super.onResume()
         loadConversations()
     }
 
@@ -105,14 +80,37 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun loadConversations() {
-        allConversations = SAMPLE_CONVERSATIONS
-        adapter.updateData(allConversations)
-        updateEmptyState(allConversations.isEmpty())
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Log.w(TAG, "No auth token, showing empty state")
+            updateEmptyState(true)
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                allConversations = chatRepository.getConversations(token)
+                adapter.updateData(allConversations)
+                updateEmptyState(allConversations.isEmpty())
+                Log.d(TAG, "Loaded ${allConversations.size} conversations")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading conversations", e)
+                allConversations = emptyList()
+                adapter.updateData(emptyList())
+                updateEmptyState(true)
+            }
+        }
     }
 
     private fun updateEmptyState(isEmpty: Boolean) {
         binding.rvConversations.isVisible = !isEmpty
         binding.layoutEmpty.isVisible = isEmpty
+
+        if (isEmpty) {
+            binding.btnFindSpecialists.setOnClickListener {
+                navigateTo(SearchPageActivity::class.java)
+            }
+        }
     }
 
     private fun openConversation(conversation: Conversation) {

@@ -3,65 +3,59 @@ package com.example.beautyappfrontend.ui.screens
 import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
 import coil.transform.CircleCropTransformation
 import com.example.beautyappfrontend.R
+import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivityChatConversationBinding
 import com.example.beautyappfrontend.domain.model.ChatMessage
 import com.example.beautyappfrontend.ui.MessageAdapter
+import com.example.beautyappfrontend.utils.SessionManager
+import kotlinx.coroutines.launch
 
 class ChatConversationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityChatConversationBinding
     private lateinit var adapter: MessageAdapter
+    private lateinit var session: SessionManager
+    private val chatRepository = ChatRepository()
 
     private var conversationId: Int = 0
     private var participantName: String = ""
     private var participantAvatar: String = ""
     private var isOnline: Boolean = false
 
+    private val refreshHandler = Handler(Looper.getMainLooper())
+    private var isRefreshing = false
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            refreshMessages()
+            refreshHandler.postDelayed(this, REFRESH_INTERVAL_MS)
+        }
+    }
+
     companion object {
+        private const val TAG = "ChatConversation"
+        private const val REFRESH_INTERVAL_MS = 3000L
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_PARTICIPANT_NAME = "participant_name"
         const val EXTRA_PARTICIPANT_AVATAR = "participant_avatar"
         const val EXTRA_IS_ONLINE = "is_online"
-
-        private fun getSampleMessages(conversationId: Int): List<ChatMessage> {
-            return when (conversationId) {
-                1 -> listOf(
-                    ChatMessage(1, 1, 0, "Hello! I would like to book an appointment for tomorrow.", "10:15", true),
-                    ChatMessage(2, 1, 1, "Hi! Of course, what time works best for you?", "10:18", false),
-                    ChatMessage(3, 1, 0, "Is 3pm available?", "10:20", true),
-                    ChatMessage(4, 1, 1, "Sure! I can fit you in at 3pm tomorrow.", "10:30", false),
-                )
-                2 -> listOf(
-                    ChatMessage(1, 2, 0, "I'd like to get a haircut and color.", "Yesterday", true),
-                    ChatMessage(2, 2, 2, "Great! I have availability next week. Would Tuesday work?", "Yesterday", false),
-                    ChatMessage(3, 2, 0, "Tuesday at 2pm would be perfect!", "Yesterday", true),
-                    ChatMessage(4, 2, 2, "Thank you for booking!", "Yesterday", false),
-                )
-                3 -> listOf(
-                    ChatMessage(1, 3, 0, "Can I reschedule my appointment to next Friday?", "Mon", true),
-                    ChatMessage(2, 3, 3, "Of course! I'll move you to Friday at 11am.", "Mon", false),
-                    ChatMessage(3, 3, 0, "Perfect, thank you!", "Mon", true),
-                    ChatMessage(4, 3, 3, "Your appointment is confirmed.", "Mon", false),
-                )
-                4 -> listOf(
-                    ChatMessage(1, 4, 0, "Looking forward to my appointment!", "Sun", true),
-                    ChatMessage(2, 4, 4, "See you on Friday!", "Sun", false),
-                )
-                else -> emptyList()
-            }
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityChatConversationBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        session = SessionManager(this)
 
         extractIntentData()
         setupHeader()
@@ -70,6 +64,50 @@ class ChatConversationActivity : AppCompatActivity() {
         setupBottomNav()
 
         loadMessages()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startAutoRefresh()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopAutoRefresh()
+    }
+
+    private fun startAutoRefresh() {
+        refreshHandler.postDelayed(refreshRunnable, REFRESH_INTERVAL_MS)
+    }
+
+    private fun stopAutoRefresh() {
+        refreshHandler.removeCallbacks(refreshRunnable)
+    }
+
+    private fun refreshMessages() {
+        if (isRefreshing) return
+        isRefreshing = true
+
+        val token = session.getToken()
+        if (token.isNullOrBlank() || conversationId == 0) {
+            isRefreshing = false
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                val messages = chatRepository.getMessages(token, conversationId)
+                val currentCount = adapter.itemCount
+                adapter.updateData(messages)
+                if (messages.size > currentCount) {
+                    binding.rvMessages.scrollToPosition(messages.size - 1)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error refreshing messages", e)
+            } finally {
+                isRefreshing = false
+            }
+        }
     }
 
     private fun extractIntentData() {
@@ -127,24 +165,48 @@ class ChatConversationActivity : AppCompatActivity() {
     }
 
     private fun loadMessages() {
-        val messages = getSampleMessages(conversationId)
-        adapter.updateData(messages)
-        if (messages.isNotEmpty()) {
-            binding.rvMessages.scrollToPosition(messages.size - 1)
+        val token = session.getToken()
+        if (token.isNullOrBlank() || conversationId == 0) {
+            Log.w(TAG, "No token or invalid conversation ID")
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                val messages = chatRepository.getMessages(token, conversationId)
+                adapter.updateData(messages)
+                if (messages.isNotEmpty()) {
+                    binding.rvMessages.scrollToPosition(messages.size - 1)
+                }
+                Log.d(TAG, "Loaded ${messages.size} messages")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading messages", e)
+            }
         }
     }
 
     private fun sendMessage(text: String) {
-        val newMessage = ChatMessage(
-            id = System.currentTimeMillis().toInt(),
-            conversationId = conversationId,
-            senderId = 0,
-            text = text,
-            timestamp = "Now",
-            isFromMe = true,
-        )
-        adapter.addMessage(newMessage)
-        binding.rvMessages.scrollToPosition(adapter.itemCount - 1)
+        val token = session.getToken()
+        if (token.isNullOrBlank() || conversationId == 0) {
+            Toast.makeText(this, "Cannot send message", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                val message = chatRepository.sendMessage(token, conversationId, text)
+                adapter.addMessage(message)
+                binding.rvMessages.scrollToPosition(adapter.itemCount - 1)
+                Log.d(TAG, "Message sent: ${message.text}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sending message", e)
+                Toast.makeText(
+                    this@ChatConversationActivity,
+                    "Failed to send message",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
     }
 
     private fun setupBottomNav() {

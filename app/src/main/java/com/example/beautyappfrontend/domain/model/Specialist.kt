@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class Specialist(
     val id: Int,
+    @SerializedName("user_id") val userId: Int? = null,
     val name: String,
     val specialization: String,
     val rating: Double = 0.0,
