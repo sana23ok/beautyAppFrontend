@@ -7,7 +7,8 @@ data class ConversationParticipant(
     val username: String = "",
     @SerializedName("first_name") val firstName: String = "",
     @SerializedName("last_name") val lastName: String = "",
-    val avatar: String = "",
+    /** Gson may send null; treat as no photo. */
+    val avatar: String? = null,
     @SerializedName("is_online") val isOnline: Boolean = false,
     @SerializedName("display_name") val displayNameFromServer: String = "",
 ) {
@@ -80,7 +81,7 @@ data class Conversation(
                 id = response.id,
                 participantId = response.participant?.id ?: 0,
                 participantName = response.participant?.displayName ?: "Unknown",
-                participantAvatar = response.participant?.avatar ?: "",
+                participantAvatar = response.participant?.avatar.orEmpty(),
                 lastMessage = response.lastMessage,
                 lastMessageTime = response.lastMessageTime,
                 unreadCount = response.unreadCount,

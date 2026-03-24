@@ -10,14 +10,14 @@
     android:paddingVertical="12dp">
 
     <!-- Avatar -->
+    <!-- Do not use android:tint here: it would tint Coil-loaded photos (e.g. all white). -->
     <ImageView
         android:id="@+id/iv_avatar"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:background="@drawable/bg_avatar_circle"
         android:padding="10dp"
-        android:src="@drawable/ic_nav_profile"
-        android:tint="@color/white" />
+        android:src="@drawable/ic_nav_profile" />
 
     <!-- Name + Last message -->
     <LinearLayout

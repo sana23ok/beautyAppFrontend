@@ -1,10 +1,12 @@
 package com.example.beautyappfrontend.ui
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
@@ -39,6 +41,7 @@ class ConversationAdapter(
         holder.time.text = conversation.lastMessageTime
 
         if (conversation.participantAvatar.isNotBlank()) {
+            holder.avatar.imageTintList = null
             holder.avatar.load(conversation.participantAvatar) {
                 crossfade(true)
                 placeholder(R.drawable.ic_nav_profile)
@@ -52,6 +55,9 @@ class ConversationAdapter(
             holder.avatar.setBackgroundResource(R.drawable.bg_avatar_circle)
             val padding = (10 * holder.itemView.resources.displayMetrics.density).toInt()
             holder.avatar.setPadding(padding, padding, padding, padding)
+            holder.avatar.imageTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(holder.itemView.context, R.color.white),
+            )
         }
 
         if (conversation.unreadCount > 0) {

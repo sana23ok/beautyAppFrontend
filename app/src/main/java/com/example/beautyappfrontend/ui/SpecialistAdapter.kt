@@ -1,11 +1,13 @@
 package com.example.beautyappfrontend.ui
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.CircleCropTransformation
@@ -42,6 +44,8 @@ class SpecialistAdapter(
         }
 
         if (s.imageUrl.isNotBlank()) {
+            holder.avatar.imageTintList = null
+            holder.avatar.setPadding(0, 0, 0, 0)
             holder.avatar.load(s.imageUrl) {
                 crossfade(true)
                 placeholder(R.drawable.ic_nav_profile)
@@ -49,7 +53,12 @@ class SpecialistAdapter(
                 transformations(CircleCropTransformation())
             }
         } else {
+            val pad = (16 * holder.itemView.resources.displayMetrics.density).toInt()
+            holder.avatar.setPadding(pad, pad, pad, pad)
             holder.avatar.setImageResource(R.drawable.ic_nav_profile)
+            holder.avatar.imageTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(holder.itemView.context, R.color.guava_sage),
+            )
         }
 
         holder.btnView.setOnClickListener    { onViewClick?.invoke(s) }

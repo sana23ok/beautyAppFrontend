@@ -2,12 +2,14 @@ package com.example.beautyappfrontend.ui.screens
 
 import android.app.ActivityOptions
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
@@ -128,6 +130,7 @@ class ChatConversationActivity : AppCompatActivity() {
         )
 
         if (participantAvatar.isNotBlank()) {
+            binding.ivAvatar.imageTintList = null
             binding.ivAvatar.load(participantAvatar) {
                 crossfade(true)
                 placeholder(R.drawable.ic_nav_profile)
@@ -136,6 +139,14 @@ class ChatConversationActivity : AppCompatActivity() {
             }
             binding.ivAvatar.background = null
             binding.ivAvatar.setPadding(0, 0, 0, 0)
+        } else {
+            binding.ivAvatar.setImageResource(R.drawable.ic_nav_profile)
+            binding.ivAvatar.setBackgroundResource(R.drawable.bg_avatar_circle)
+            val p = (8 * resources.displayMetrics.density).toInt()
+            binding.ivAvatar.setPadding(p, p, p, p)
+            binding.ivAvatar.imageTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.white),
+            )
         }
 
         binding.btnBack.setOnClickListener { finish() }

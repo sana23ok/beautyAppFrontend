@@ -17,6 +17,7 @@
         android:padding="12dp">
 
         <!-- Photo placeholder -->
+        <!-- Do not use android:tint here: it tints network photos (sage circle / wrong colors). -->
         <ImageView
             android:id="@+id/ivAvatar"
             android:layout_width="80dp"
@@ -24,8 +25,7 @@
             android:background="@color/guava_cream"
             android:padding="16dp"
             android:scaleType="centerCrop"
-            android:src="@drawable/ic_nav_profile"
-            android:tint="@color/guava_sage" />
+            android:src="@drawable/ic_nav_profile" />
 
         <!-- Content column -->
         <LinearLayout
