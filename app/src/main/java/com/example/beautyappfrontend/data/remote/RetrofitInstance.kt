@@ -1,13 +1,15 @@
 package com.example.beautyappfrontend.data.remote
 
+import com.example.beautyappfrontend.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
-    // Для емулятора Android Studio адреса localhost це 10.0.2.2
-    private const val BASE_URL = "http://10.0.2.2:8000/"
+    // Port 8000 — same as: python manage.py runserver 0.0.0.0:8000
+    // Emulator default: http://10.0.2.2:8000/  |  Real device: set api.base.url in local.properties
+    private val BASE_URL: String = BuildConfig.API_BASE_URL
 
     // Logs every request URL + headers + body AND every response body to Logcat.
     // Filter Logcat by tag "OkHttp" to see the full HTTP traffic.

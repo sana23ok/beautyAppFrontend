@@ -48,21 +48,23 @@ class ProfileActivity : AppCompatActivity() {
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri ?: return@registerForActivityResult
-        val editText = pendingAvatarEditText ?: return@registerForActivityResult
         val token = session.getToken() ?: return@registerForActivityResult
+        val editText = pendingAvatarEditText
         lifecycleScope.launch {
             try {
-                val file = copyUriToCacheFile(uri)
+                val mimeType = resolveImageMimeType(uri)
+                val file = copyUriToCacheFile(uri, mimeType)
                 val part = MultipartBody.Part.createFormData(
                     "photo",
                     file.name,
-                    file.asRequestBody("image/*".toMediaTypeOrNull())
+                    file.asRequestBody(mimeType.toMediaTypeOrNull())
                 )
                 val url = authRepository.uploadAvatar(token, part)
-                editText.setText(url)
+                editText?.setText(url)
                 session.saveAvatarUrl(url)
                 if (session.isMaster()) session.saveMasterProfilePhoto(url)
                 populateUserData()
+                syncProfileFromBackend()
                 Toast.makeText(this@ProfileActivity, "Photo uploaded", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(this@ProfileActivity, e.message ?: "Upload failed", Toast.LENGTH_LONG).show()
@@ -70,8 +72,22 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    private fun copyUriToCacheFile(uri: Uri): File {
-        val file = File(cacheDir, "upload_${System.currentTimeMillis()}.jpg")
+    /** OkHttp must send a concrete MIME (e.g. image/jpeg); wildcards are rejected by Django. */
+    private fun resolveImageMimeType(uri: Uri): String {
+        val raw = contentResolver.getType(uri) ?: return "image/jpeg"
+        val allowed = setOf("image/jpeg", "image/png", "image/webp", "image/gif", "image/heic")
+        return if (raw in allowed) raw else "image/jpeg"
+    }
+
+    private fun copyUriToCacheFile(uri: Uri, mimeType: String): File {
+        val ext = when (mimeType) {
+            "image/png" -> "png"
+            "image/webp" -> "webp"
+            "image/gif" -> "gif"
+            "image/heic" -> "heic"
+            else -> "jpg"
+        }
+        val file = File(cacheDir, "upload_${System.currentTimeMillis()}.$ext")
         contentResolver.openInputStream(uri)?.use { input ->
             file.outputStream().use { output ->
                 input.copyTo(output)
@@ -161,6 +177,14 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        binding.ivAvatar.setOnClickListener {
+            if (session.getToken().isNullOrBlank()) {
+                Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            pendingAvatarEditText = null
+            pickImageLauncher.launch("image/*")
+        }
         binding.btnEdit.setOnClickListener {
             if (session.isMaster()) {
                 openMasterEditDialog()
