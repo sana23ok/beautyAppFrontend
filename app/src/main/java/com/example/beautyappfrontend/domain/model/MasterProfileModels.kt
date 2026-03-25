@@ -60,6 +60,8 @@ data class MasterProfileDraft(
     val experienceYears: Int = 0,
     val description: String = "",
     val profilePhoto: String = "",
+    /** All portfolio work photo URLs from API (excludes profile avatar). */
+    val workPhotoUrls: List<String> = emptyList(),
     val workPhotoUrl: String = "",
     val workPhotoCaption: String = "",
     val mondayHours: String = "",

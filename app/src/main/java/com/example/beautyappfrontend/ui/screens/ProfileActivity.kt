@@ -4,6 +4,9 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -224,6 +227,11 @@ class ProfileActivity : AppCompatActivity() {
         binding.appointment3.root.setOnClickListener {
             Toast.makeText(this, "Appointment details coming soon", Toast.LENGTH_SHORT).show()
         }
+        binding.frameWorkAdd.setOnClickListener {
+            if (session.isMaster()) {
+                openMasterEditDialog()
+            }
+        }
         binding.btnSchedulePrev.setOnClickListener {
             if (scheduleWeekOffset > 0) {
                 scheduleWeekOffset--
@@ -326,35 +334,92 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun renderWorkGallery(draft: MasterProfileDraft) {
-        val urls = mutableListOf<String?>()
-        if (draft.workPhotoUrl.isNotBlank()) {
-            urls.add(draft.workPhotoUrl)
-        }
-        if (draft.profilePhoto.isNotBlank()) {
-            urls.add(draft.profilePhoto)
-        }
-        while (urls.size < 4) {
-            urls.add(null)
+        val profileUrl = draft.profilePhoto.ifBlank { session.getAvatarUrl().orEmpty() }.trim()
+        val workUrls = draft.workPhotoUrls
+            .map { it.trim() }
+            .filter { it.isNotBlank() && !it.equals(profileUrl, ignoreCase = true) }
+            .distinct()
+            .take(8)
+
+        val padded = workUrls.toMutableList<String?>()
+        while (padded.size < 8) padded.add(null)
+
+        val cells = listOf(
+            binding.ivWork1,
+            binding.ivWork2,
+            binding.ivWork3,
+            binding.ivWork4,
+            binding.ivWork5,
+            binding.ivWork6,
+            binding.ivWork7,
+            binding.ivWork8,
+        )
+        cells.zip(padded).forEach { (imageView, url) ->
+            bindGalleryCell(imageView, url)
         }
 
-        val views = listOf(binding.ivWork1, binding.ivWork2, binding.ivWork3, binding.ivWork4)
-        views.zip(urls).forEach { (imageView, url) ->
-            bindGalleryImage(imageView, url)
-        }
+        // Last tile: blurred background + plus (never uses profile photo).
+        val addTileBg = workUrls.lastOrNull() ?: workUrls.firstOrNull()
+        bindAddPhotoTile(addTileBg)
     }
 
-    private fun bindGalleryImage(imageView: ImageView, url: String?) {
+    private fun bindGalleryCell(imageView: ImageView, url: String?) {
         if (url.isNullOrBlank()) {
             imageView.setImageResource(R.drawable.ic_nav_profile)
             imageView.imageTintList = ColorStateList.valueOf(
                 ContextCompat.getColor(this, R.color.text_hint)
             )
+            imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
             return
         }
 
         imageView.imageTintList = null
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
         imageView.load(url) {
             crossfade(true)
+        }
+    }
+
+    private fun bindAddPhotoTile(backgroundUrl: String?) {
+        binding.ivWork9Plus.visibility = View.VISIBLE
+        clearAddTileBlur()
+        if (backgroundUrl.isNullOrBlank()) {
+            binding.ivWork9Bg.setImageDrawable(null)
+            binding.ivWork9Bg.setBackgroundResource(R.drawable.bg_photo_add_empty)
+            binding.ivWork9Bg.alpha = 1f
+            return
+        }
+        binding.ivWork9Bg.background = null
+        binding.ivWork9Bg.alpha = 1f
+        binding.ivWork9Bg.scaleType = ImageView.ScaleType.CENTER_CROP
+        binding.ivWork9Bg.load(backgroundUrl) {
+            crossfade(true)
+            listener(
+                onSuccess = { _, _ -> applyBlurToAddTile() },
+                onError = { _, _ ->
+                    clearAddTileBlur()
+                    binding.ivWork9Bg.setImageDrawable(null)
+                    binding.ivWork9Bg.setBackgroundResource(R.drawable.bg_photo_add_empty)
+                    binding.ivWork9Bg.alpha = 1f
+                },
+            )
+        }
+    }
+
+    private fun clearAddTileBlur() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.ivWork9Bg.setRenderEffect(null)
+        }
+    }
+
+    private fun applyBlurToAddTile() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.ivWork9Bg.setRenderEffect(
+                RenderEffect.createBlurEffect(22f, 22f, Shader.TileMode.CLAMP),
+            )
+            binding.ivWork9Bg.alpha = 1f
+        } else {
+            binding.ivWork9Bg.alpha = 0.72f
         }
     }
 
@@ -580,6 +645,7 @@ class ProfileActivity : AppCompatActivity() {
             return null
         }
 
+        val workPhotoUrls = if (workPhotoUrl.isNotBlank()) listOf(workPhotoUrl) else emptyList()
         return MasterProfileDraft(
             masterId = masterId,
             name = name,
@@ -589,6 +655,7 @@ class ProfileActivity : AppCompatActivity() {
             experienceYears = experienceYears,
             description = description,
             profilePhoto = profilePhoto,
+            workPhotoUrls = workPhotoUrls,
             workPhotoUrl = workPhotoUrl,
             workPhotoCaption = workPhotoCaption,
             mondayHours = dialogBinding.etMondayHours.text.toString().trim(),
@@ -618,12 +685,17 @@ class ProfileActivity : AppCompatActivity() {
             saturdayHours = saturdayHours,
             sundayHours = sundayHours,
             workPhotos = buildList {
-                if (workPhotoUrl.isNotBlank()) {
+                val urls = when {
+                    workPhotoUrls.isNotEmpty() -> workPhotoUrls
+                    workPhotoUrl.isNotBlank() -> listOf(workPhotoUrl)
+                    else -> emptyList()
+                }
+                urls.forEachIndexed { index, url ->
                     add(
                         MasterWorkPhotoRequest(
-                            photoUrl = workPhotoUrl,
-                            caption = workPhotoCaption,
-                        )
+                            photoUrl = url,
+                            caption = if (index == 0) workPhotoCaption else "",
+                        ),
                     )
                 }
             },
@@ -631,6 +703,9 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun MasterProfileResponse.toDraft(): MasterProfileDraft {
+        val profile = profilePhoto.trim()
+        val filteredUrls = workPhotos.map { it.photoUrl }
+            .filter { it.isNotBlank() && !it.trim().equals(profile, ignoreCase = true) }
         return MasterProfileDraft(
             masterId = id,
             name = name,
@@ -640,7 +715,8 @@ class ProfileActivity : AppCompatActivity() {
             experienceYears = experienceYears,
             description = description,
             profilePhoto = profilePhoto,
-            workPhotoUrl = workPhotos.firstOrNull()?.photoUrl ?: "",
+            workPhotoUrls = filteredUrls,
+            workPhotoUrl = filteredUrls.firstOrNull() ?: "",
             workPhotoCaption = workPhotos.firstOrNull()?.caption ?: "",
             mondayHours = mondayHours,
             tuesdayHours = tuesdayHours,

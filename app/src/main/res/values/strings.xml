@@ -28,4 +28,21 @@
     <string name="schedule_already_booked">already\nbooked</string>
     <string name="schedule_prev_week">Previous week</string>
     <string name="schedule_next_week">Next week</string>
+
+    <!-- Master profile: price list (mock; replace with API later) -->
+    <string name="master_price_list_title">Services &amp; prices</string>
+    <string name="master_price_col_service">Service</string>
+    <string name="master_price_col_price">Price</string>
+    <string name="master_price_mock_1">Classic manicure</string>
+    <string name="master_price_mock_1_value">₴850</string>
+    <string name="master_price_mock_2">Gel polish</string>
+    <string name="master_price_mock_2_value">₴1 200</string>
+    <string name="master_price_mock_3">Spa pedicure</string>
+    <string name="master_price_mock_3_value">₴1 500</string>
+    <string name="master_price_mock_4">Full set (hands + feet)</string>
+    <string name="master_price_mock_4_value">₴2 500</string>
+
+    <string name="master_photos_title">Photos</string>
+    <string name="master_photo_slot_desc">Portfolio photo</string>
+    <string name="master_add_photo_desc">Add photo</string>
 </resources>

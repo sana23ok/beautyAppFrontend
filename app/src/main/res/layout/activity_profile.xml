@@ -238,7 +238,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Works:"
+                    android:text="@string/master_photos_title"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -248,53 +248,337 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:alignmentMode="alignMargins"
-                    android:columnCount="2"
+                    android:columnCount="3"
+                    android:rowCount="3"
                     android:useDefaultMargins="true">
 
-                    <ImageView
-                        android:id="@+id/iv_work_1"
+                    <FrameLayout
                         android:layout_width="0dp"
-                        android:layout_height="160dp"
+                        android:layout_height="104dp"
                         android:layout_columnWeight="1"
-                        android:adjustViewBounds="true"
-                        android:background="@drawable/bg_option_box"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_nav_profile"
-                        android:tint="@color/text_hint" />
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
 
-                    <ImageView
-                        android:id="@+id/iv_work_2"
-                        android:layout_width="0dp"
-                        android:layout_height="160dp"
-                        android:layout_columnWeight="1"
-                        android:adjustViewBounds="true"
-                        android:background="@drawable/bg_option_box"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_nav_profile"
-                        android:tint="@color/text_hint" />
+                        <ImageView
+                            android:id="@+id/iv_work_1"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
 
-                    <ImageView
-                        android:id="@+id/iv_work_3"
+                    <FrameLayout
                         android:layout_width="0dp"
-                        android:layout_height="160dp"
+                        android:layout_height="104dp"
                         android:layout_columnWeight="1"
-                        android:adjustViewBounds="true"
-                        android:background="@drawable/bg_option_box"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_nav_profile"
-                        android:tint="@color/text_hint" />
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
 
-                    <ImageView
-                        android:id="@+id/iv_work_4"
+                        <ImageView
+                            android:id="@+id/iv_work_2"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
                         android:layout_width="0dp"
-                        android:layout_height="160dp"
+                        android:layout_height="104dp"
                         android:layout_columnWeight="1"
-                        android:adjustViewBounds="true"
-                        android:background="@drawable/bg_option_box"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_nav_profile"
-                        android:tint="@color/text_hint" />
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
+
+                        <ImageView
+                            android:id="@+id/iv_work_3"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="104dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
+
+                        <ImageView
+                            android:id="@+id/iv_work_4"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="104dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
+
+                        <ImageView
+                            android:id="@+id/iv_work_5"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="104dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
+
+                        <ImageView
+                            android:id="@+id/iv_work_6"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="104dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
+
+                        <ImageView
+                            android:id="@+id/iv_work_7"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="104dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell">
+
+                        <ImageView
+                            android:id="@+id/iv_work_8"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/master_photo_slot_desc"
+                            android:scaleType="centerCrop" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/frame_work_add"
+                        android:layout_width="0dp"
+                        android:layout_height="104dp"
+                        android:layout_columnWeight="1"
+                        android:layout_margin="3dp"
+                        android:background="@drawable/bg_photo_grid_cell"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:id="@+id/iv_work_9_bg"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@null"
+                            android:scaleType="centerCrop" />
+
+                        <ImageView
+                            android:id="@+id/iv_work_9_plus"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/bg_peach_circle"
+                            android:contentDescription="@string/master_add_photo_desc"
+                            android:padding="10dp"
+                            android:src="@drawable/ic_plus_white" />
+                    </FrameLayout>
                 </GridLayout>
+
+                <!-- Price list (two columns: service | price), guava palette — before weekly schedule -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="22dp"
+                    android:text="@string/master_price_list_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:id="@+id/layout_master_price_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingStart="16dp"
+                        android:paddingTop="18dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="18dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingBottom="12dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/master_price_col_service"
+                                android:textColor="@color/peach_dark"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:gravity="end"
+                                android:minWidth="72dp"
+                                android:text="@string/master_price_col_price"
+                                android:textColor="@color/peach_dark"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="14dp"
+                            android:paddingBottom="14dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/master_price_mock_1"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="@string/master_price_mock_1_value"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="14dp"
+                            android:paddingBottom="14dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/master_price_mock_2"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="@string/master_price_mock_2_value"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="14dp"
+                            android:paddingBottom="14dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/master_price_mock_3"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="@string/master_price_mock_3_value"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="14dp"
+                            android:paddingBottom="4dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/master_price_mock_4"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="@string/master_price_mock_4_value"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
 
                 <TextView
                     android:layout_width="match_parent"

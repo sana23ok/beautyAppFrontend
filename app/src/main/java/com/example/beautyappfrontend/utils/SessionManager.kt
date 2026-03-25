@@ -2,6 +2,7 @@ package com.example.beautyappfrontend.utils
 
 import android.content.Context
 import android.util.Log
+import org.json.JSONArray
 import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.MasterProfileDraft
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
@@ -90,6 +91,7 @@ class SessionManager(context: Context) {
             .putString(KEY_MASTER_PROFILE_PHOTO, profile.profilePhoto)
             .putString(KEY_MASTER_WORK_PHOTO_URL, profile.workPhotos.firstOrNull()?.photoUrl ?: "")
             .putString(KEY_MASTER_WORK_PHOTO_CAPTION, profile.workPhotos.firstOrNull()?.caption ?: "")
+            .putString(KEY_MASTER_WORK_PHOTOS_JSON, workPhotoUrlsToJson(profile.workPhotos.map { it.photoUrl }))
             .putString(KEY_MASTER_MONDAY_HOURS, profile.mondayHours)
             .putString(KEY_MASTER_TUESDAY_HOURS, profile.tuesdayHours)
             .putString(KEY_MASTER_WEDNESDAY_HOURS, profile.wednesdayHours)
@@ -112,6 +114,7 @@ class SessionManager(context: Context) {
             .putString(KEY_MASTER_PROFILE_PHOTO, draft.profilePhoto)
             .putString(KEY_MASTER_WORK_PHOTO_URL, draft.workPhotoUrl)
             .putString(KEY_MASTER_WORK_PHOTO_CAPTION, draft.workPhotoCaption)
+            .putString(KEY_MASTER_WORK_PHOTOS_JSON, workPhotoUrlsToJson(draft.workPhotoUrls))
             .putString(KEY_MASTER_MONDAY_HOURS, draft.mondayHours)
             .putString(KEY_MASTER_TUESDAY_HOURS, draft.tuesdayHours)
             .putString(KEY_MASTER_WEDNESDAY_HOURS, draft.wednesdayHours)
@@ -124,6 +127,16 @@ class SessionManager(context: Context) {
 
     fun getMasterDraft(): MasterProfileDraft {
         val masterId = prefs.getInt(KEY_MASTER_ID, -1).takeIf { it > 0 }
+        val profilePic = prefs.getString(KEY_MASTER_PROFILE_PHOTO, "")?.trim().orEmpty()
+        val legacyWorkUrl = prefs.getString(KEY_MASTER_WORK_PHOTO_URL, "") ?: ""
+        val urlsFromJson = parseWorkPhotoUrls(prefs.getString(KEY_MASTER_WORK_PHOTOS_JSON, null))
+            .filter { it.isNotBlank() && !it.equals(profilePic, ignoreCase = true) }
+        val workPhotoUrls = when {
+            urlsFromJson.isNotEmpty() -> urlsFromJson
+            legacyWorkUrl.isNotBlank() && !legacyWorkUrl.equals(profilePic, ignoreCase = true) ->
+                listOf(legacyWorkUrl)
+            else -> emptyList()
+        }
         return MasterProfileDraft(
             masterId = masterId,
             name = prefs.getString(KEY_MASTER_NAME, "") ?: "",
@@ -133,7 +146,8 @@ class SessionManager(context: Context) {
             experienceYears = prefs.getInt(KEY_MASTER_EXPERIENCE, 0),
             description = prefs.getString(KEY_MASTER_DESCRIPTION, "") ?: "",
             profilePhoto = prefs.getString(KEY_MASTER_PROFILE_PHOTO, "") ?: "",
-            workPhotoUrl = prefs.getString(KEY_MASTER_WORK_PHOTO_URL, "") ?: "",
+            workPhotoUrls = workPhotoUrls,
+            workPhotoUrl = workPhotoUrls.firstOrNull() ?: legacyWorkUrl,
             workPhotoCaption = prefs.getString(KEY_MASTER_WORK_PHOTO_CAPTION, "") ?: "",
             mondayHours = prefs.getString(KEY_MASTER_MONDAY_HOURS, "") ?: "",
             tuesdayHours = prefs.getString(KEY_MASTER_TUESDAY_HOURS, "") ?: "",
@@ -149,6 +163,22 @@ class SessionManager(context: Context) {
 
     fun clearSession() {
         prefs.edit().clear().apply()
+    }
+
+    private fun workPhotoUrlsToJson(urls: List<String>): String {
+        val arr = JSONArray()
+        urls.filter { it.isNotBlank() }.forEach { arr.put(it) }
+        return arr.toString()
+    }
+
+    private fun parseWorkPhotoUrls(json: String?): List<String> {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).map { arr.getString(it) }.filter { it.isNotBlank() }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     companion object {
@@ -172,6 +202,7 @@ class SessionManager(context: Context) {
         private const val KEY_MASTER_PROFILE_PHOTO = "master_profile_photo"
         private const val KEY_MASTER_WORK_PHOTO_URL = "master_work_photo_url"
         private const val KEY_MASTER_WORK_PHOTO_CAPTION = "master_work_photo_caption"
+        private const val KEY_MASTER_WORK_PHOTOS_JSON = "master_work_photos_json"
         private const val KEY_MASTER_MONDAY_HOURS = "master_monday_hours"
         private const val KEY_MASTER_TUESDAY_HOURS = "master_tuesday_hours"
         private const val KEY_MASTER_WEDNESDAY_HOURS = "master_wednesday_hours"
