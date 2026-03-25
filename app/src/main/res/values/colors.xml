@@ -27,4 +27,15 @@
     <color name="guava_light_green">#CBEFAA</color>
     <color name="guava_sage">#B4BD9A</color>
     <color name="red_primary">#E53935</color>
+
+    <!-- Master weekly timetable (guava) -->
+    <color name="schedule_header_bg">#F65368</color>
+    <color name="schedule_slot_free">#F0F9E8</color>
+    <color name="schedule_slot_free_alt">#E8F5DC</color>
+    <color name="schedule_slot_booked">#C6284A</color>
+    <color name="schedule_slot_booked_text">#FFFFFF</color>
+    <color name="schedule_day_label_bg">#FCA3AD</color>
+    <color name="schedule_grid_stroke">#E3DAB7</color>
+    <color name="schedule_hatch_base">#E0E0E0</color>
+    <color name="schedule_hatch_line">#9E9E9E</color>
 </resources>

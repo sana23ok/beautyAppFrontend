@@ -25,4 +25,7 @@
     <string name="sign_in_link">Sign in</string>
     <string name="or">or</string>
     <string name="register_as_master">I am a master and want a professional profile</string>
+    <string name="schedule_already_booked">already\nbooked</string>
+    <string name="schedule_prev_week">Previous week</string>
+    <string name="schedule_next_week">Next week</string>
 </resources>

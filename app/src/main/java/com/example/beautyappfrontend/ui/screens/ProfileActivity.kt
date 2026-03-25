@@ -28,6 +28,7 @@ import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
+import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -43,6 +44,9 @@ class ProfileActivity : AppCompatActivity() {
     private val masterRepository = MasterRepository()
 
     private var pendingAvatarEditText: EditText? = null
+
+    /** 0 = current week … 3 = fourth week ahead (4 weeks total). */
+    private var scheduleWeekOffset: Int = 0
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -220,6 +224,18 @@ class ProfileActivity : AppCompatActivity() {
         binding.appointment3.root.setOnClickListener {
             Toast.makeText(this, "Appointment details coming soon", Toast.LENGTH_SHORT).show()
         }
+        binding.btnSchedulePrev.setOnClickListener {
+            if (scheduleWeekOffset > 0) {
+                scheduleWeekOffset--
+                renderSchedule(session.getMasterDraft())
+            }
+        }
+        binding.btnScheduleNext.setOnClickListener {
+            if (scheduleWeekOffset < 3) {
+                scheduleWeekOffset++
+                renderSchedule(session.getMasterDraft())
+            }
+        }
     }
 
     private fun setupBottomNav() {
@@ -342,17 +358,14 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderSchedule(draft: MasterProfileDraft) {
-        binding.tvScheduleMon.text = formatHours(draft.mondayHours)
-        binding.tvScheduleTue.text = formatHours(draft.tuesdayHours)
-        binding.tvScheduleWed.text = formatHours(draft.wednesdayHours)
-        binding.tvScheduleThu.text = formatHours(draft.thursdayHours)
-        binding.tvScheduleFri.text = formatHours(draft.fridayHours)
-        binding.tvScheduleSat.text = formatHours(draft.saturdayHours)
-        binding.tvScheduleSun.text = formatHours(draft.sundayHours)
+    private fun renderSchedule(@Suppress("UNUSED_PARAMETER") draft: MasterProfileDraft) {
+        binding.tvScheduleWeekLabel.text = MasterScheduleUi.weekRangeLabel(scheduleWeekOffset)
+        binding.btnSchedulePrev.isEnabled = scheduleWeekOffset > 0
+        binding.btnSchedulePrev.alpha = if (scheduleWeekOffset > 0) 1f else 0.35f
+        binding.btnScheduleNext.isEnabled = scheduleWeekOffset < 3
+        binding.btnScheduleNext.alpha = if (scheduleWeekOffset < 3) 1f else 0.35f
+        MasterScheduleUi.populateGrid(binding.layoutScheduleGrid, scheduleWeekOffset)
     }
-
-    private fun formatHours(hours: String): String = hours.ifBlank { "Closed" }
 
     private fun openUserEditDialog() {
         val token = session.getToken()

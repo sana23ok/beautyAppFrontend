@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/auth_background"
@@ -299,139 +300,86 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="22dp"
-                    android:text="Time available for appointments:"
+                    android:text="Weekly schedule"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <TableLayout
-                    android:id="@+id/table_schedule"
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="8:00 – 20:00 · swipe horizontally on small screens"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:shrinkColumns="*"
-                    android:stretchColumns="*">
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp">
 
-                    <TableRow>
-                        <TextView
-                            android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_schedule_header_cell"
-                            android:padding="10dp"
-                            android:text="Day"
-                            android:textColor="@color/white"
-                            android:textStyle="bold" />
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:layout_width="0dp"
+                            <ImageButton
+                                android:id="@+id/btn_schedule_prev"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/schedule_prev_week"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_arrow_back"
+                                app:tint="@color/peach_dark" />
+
+                            <TextView
+                                android:id="@+id/tv_schedule_week_label"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:text="24 Mar – 30 Mar 2026" />
+
+                            <ImageButton
+                                android:id="@+id/btn_schedule_next"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/schedule_next_week"
+                                android:padding="12dp"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="@color/peach_dark" />
+                        </LinearLayout>
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_schedule_header_cell"
-                            android:padding="10dp"
-                            android:text="Available time"
-                            android:textColor="@color/white"
-                            android:textStyle="bold" />
-                    </TableRow>
+                            android:layout_marginTop="4dp"
+                            android:fillViewport="true"
+                            android:scrollbars="horizontal">
 
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Mon"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_mon"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Tue"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_tue"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Wed"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_wed"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Thu"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_thu"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Fri"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_fri"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Sat"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_sat"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-
-                    <TableRow>
-                        <TextView
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Sun"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:id="@+id/tv_schedule_sun"
-                            android:background="@drawable/bg_schedule_cell"
-                            android:padding="10dp"
-                            android:text="Closed"
-                            android:textColor="@color/text_primary" />
-                    </TableRow>
-                </TableLayout>
+                            <LinearLayout
+                                android:id="@+id/layout_schedule_grid"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical" />
+                        </HorizontalScrollView>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
             </LinearLayout>
 
             <LinearLayout
