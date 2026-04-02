@@ -423,13 +423,22 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderSchedule(@Suppress("UNUSED_PARAMETER") draft: MasterProfileDraft) {
+    private fun renderSchedule(draft: MasterProfileDraft) {
         binding.tvScheduleWeekLabel.text = MasterScheduleUi.weekRangeLabel(scheduleWeekOffset)
         binding.btnSchedulePrev.isEnabled = scheduleWeekOffset > 0
         binding.btnSchedulePrev.alpha = if (scheduleWeekOffset > 0) 1f else 0.35f
         binding.btnScheduleNext.isEnabled = scheduleWeekOffset < 3
         binding.btnScheduleNext.alpha = if (scheduleWeekOffset < 3) 1f else 0.35f
-        MasterScheduleUi.populateGrid(binding.layoutScheduleGrid, scheduleWeekOffset)
+        val dayHours = listOf(
+            draft.mondayHours,
+            draft.tuesdayHours,
+            draft.wednesdayHours,
+            draft.thursdayHours,
+            draft.fridayHours,
+            draft.saturdayHours,
+            draft.sundayHours,
+        )
+        MasterScheduleUi.populateGrid(binding.layoutScheduleGrid, scheduleWeekOffset, dayHours)
     }
 
     private fun openUserEditDialog() {

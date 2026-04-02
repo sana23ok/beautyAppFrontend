@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.view.View
+import android.view.ViewTreeObserver
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.view.Gravity
@@ -19,8 +20,9 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Weekly timetable mock: Mon–Sun 08:00–20:00 (hour slots 8–19).
- * [CLOSED] = grey hatched (not working). [BOOKED] = darker guava + "already booked".
+ * Weekly timetable (transposed): each row is an hour [HOUR_START..HOUR_END], columns are Mon–Sun.
+ * Each cell = that hour on that day. Optional per-day strings (e.g. "9:00 – 18:00") mark slots
+ * outside the range as CLOSED. Otherwise demo rules apply for closed/booked slots.
  */
 object MasterScheduleUi {
 
@@ -63,13 +65,37 @@ object MasterScheduleUi {
         return "${weekRangeFormat.format(start)} – ${weekRangeFormat.format(end)} ${yearFormat.format(end)}"
     }
 
-    /** Mock: varies by week + day + hour. */
-    fun mockSlot(dayIndex: Int, hour: Int, weekOffset: Int): Slot {
-        // Not working (hatched): weekend mornings + some blocks
-        if (dayIndex >= 5 && hour < 11) return Slot.CLOSED
-        if (dayIndex == 0 && hour == 8) return Slot.CLOSED
-        if (dayIndex == 1 && hour >= 17) return Slot.CLOSED
-        if (dayIndex == 0 && hour == 12) return Slot.CLOSED
+    /**
+     * Parses strings like "9:00 – 18:00", "8:00-20:00", "8 — 20".
+     * Returns half-open range of slot indices [start, end) intersected with the grid (each slot = hour h).
+     */
+    private fun parseWorkingSlotRange(dayHours: String): IntRange? {
+        if (dayHours.isBlank()) return null
+        val m = Regex("""(\d{1,2})\s*[:-–—]\s*(\d{1,2})""").find(dayHours) ?: return null
+        val start = m.groupValues[1].toIntOrNull()?.coerceIn(0, 23) ?: return null
+        val end = m.groupValues[2].toIntOrNull()?.coerceIn(0, 24) ?: return null
+        if (start >= end) return null
+        val slotStart = start.coerceAtLeast(HOUR_START)
+        val slotEndExclusive = end.coerceAtMost(HOUR_END_INCLUSIVE + 1).coerceAtLeast(slotStart + 1)
+        if (slotStart >= slotEndExclusive) return null
+        return slotStart until slotEndExclusive
+    }
+
+    /** Mock: varies by week + day + hour; [dayHours] can force CLOSED outside working range. */
+    fun mockSlot(
+        dayIndex: Int,
+        hour: Int,
+        weekOffset: Int,
+        dayHoursList: List<String> = List(7) { "" },
+    ): Slot {
+        val range = dayHoursList.getOrNull(dayIndex)?.let { parseWorkingSlotRange(it) }
+        if (range != null && hour !in range) return Slot.CLOSED
+
+        // Not working (hatched): weekend mornings + some blocks (only when no custom hours)
+        if (range == null && dayIndex >= 5 && hour < 11) return Slot.CLOSED
+        if (range == null && dayIndex == 0 && hour == 8) return Slot.CLOSED
+        if (range == null && dayIndex == 1 && hour >= 17) return Slot.CLOSED
+        if (range == null && dayIndex == 0 && hour == 12) return Slot.CLOSED
 
         // Booked (dark + label)
         return when (weekOffset) {
@@ -100,98 +126,145 @@ object MasterScheduleUi {
         }
     }
 
-    fun populateGrid(container: LinearLayout, weekOffset: Int) {
+    fun populateGrid(
+        container: LinearLayout,
+        weekOffset: Int,
+        dayHoursList: List<String> = List(7) { "" },
+    ) {
         val context = container.context
         container.removeAllViews()
-        val dp = context.resources.displayMetrics.density
-        fun dp(v: Float): Int = (v * dp).toInt()
 
-        val padS = dp(4f)
-        val padM = dp(6f)
-        val dayColW = dp(52f)
-        val cellW = dp(34f)
-        val rowMinH = dp(44f)
-        val hourColumnCount = HOUR_END_INCLUSIVE - HOUR_START + 1
-        val hoursTotalWidth = cellW * hourColumnCount
+        fun buildAtWidth(widthPx: Int) {
+            if (widthPx <= 0) return
+            container.removeAllViews()
+            val dm = context.resources.displayMetrics.density
+            fun toPx(v: Float): Int = (v * dm).toInt()
 
-        // Header: one bar — "Days" + empty coral strip (no hour numbers; matches grid width below).
-        val headerRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
+            val padS = toPx(4f)
+            val padM = toPx(6f)
+            val rowMinH = toPx(44f)
+
+            // Left column ~15% of width (hour labels), rest split across Mon–Sun.
+            val labelColW = (widthPx * 0.15f).toInt().coerceIn(toPx(44f), toPx(80f))
+            val remaining = (widthPx - labelColW).coerceAtLeast(0)
+            val cellBase = remaining / 7
+            val extra = remaining - cellBase * 7
+            fun dayCellWidth(dayIndex: Int): Int = cellBase + if (dayIndex < extra) 1 else 0
+            val daysTotalWidth = remaining
+
+            val rowLayoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                rowMinH,
             )
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        headerRow.addView(
-            headerCell(context, "Days", dayColW, rowMinH, padM),
-        )
-        headerRow.addView(
-            View(context).apply {
-                setBackgroundResource(R.drawable.bg_schedule_timetable_header)
-                layoutParams = LinearLayout.LayoutParams(hoursTotalWidth, rowMinH)
-            },
-        )
-        container.addView(headerRow)
 
-        for (dayIndex in 0..6) {
-            val row = LinearLayout(context).apply {
+            // Header: corner "Hours" + Mon..Sun (aligns with grid below).
+            val headerRow = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                )
+                layoutParams = rowLayoutParams
+                gravity = Gravity.CENTER_VERTICAL
             }
-            val dayBg = if (dayIndex % 2 == 0) R.drawable.bg_schedule_day_label else R.drawable.bg_schedule_day_label
-            row.addView(
-                TextView(context).apply {
-                    text = dayLabels[dayIndex]
-                    setPadding(padS, padM, padS, padM)
-                    gravity = Gravity.CENTER
-                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                    textSize = 11f
-                    setBackgroundResource(dayBg)
-                    layoutParams = LinearLayout.LayoutParams(dayColW, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                        minimumHeight = rowMinH
-                    }
-                },
+            headerRow.addView(
+                headerCell(context, context.getString(R.string.schedule_column_hours), labelColW, rowMinH, padM),
             )
-            for (hour in HOUR_START..HOUR_END_INCLUSIVE) {
-                val slot = mockSlot(dayIndex, hour, weekOffset)
-                val freeBg = if (dayIndex % 2 == 0) {
-                    R.drawable.bg_schedule_slot_free
-                } else {
-                    R.drawable.bg_schedule_slot_free_alt
-                }
-                row.addView(
+            val dayHeader = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(daysTotalWidth, rowMinH)
+                setBackgroundResource(R.drawable.bg_schedule_timetable_header)
+            }
+            for (dayIndex in 0..6) {
+                val cw = dayCellWidth(dayIndex)
+                dayHeader.addView(
                     TextView(context).apply {
+                        text = dayLabels[dayIndex]
                         gravity = Gravity.CENTER
-                        maxLines = 3
-                        textSize = 7.5f
+                        textSize = 9f
+                        maxLines = 1
+                        setTextColor(ContextCompat.getColor(context, R.color.white))
                         setPadding(padS, padS, padS, padS)
-                        layoutParams = LinearLayout.LayoutParams(cellW, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                            minimumHeight = rowMinH
-                        }
-                        when (slot) {
-                            Slot.FREE -> {
-                                text = ""
-                                setBackgroundResource(freeBg)
-                            }
-                            Slot.BOOKED -> {
-                                text = context.getString(R.string.schedule_already_booked)
-                                setTextColor(ContextCompat.getColor(context, R.color.schedule_slot_booked_text))
-                                setBackgroundResource(R.drawable.bg_schedule_slot_booked)
-                            }
-                            Slot.CLOSED -> {
-                                text = ""
-                                background = hatchedBackground(context)
-                            }
-                        }
+                        layoutParams = LinearLayout.LayoutParams(cw, rowMinH)
                     },
                 )
             }
-            container.addView(row)
+            headerRow.addView(dayHeader)
+            container.addView(headerRow)
+
+            for (hour in HOUR_START..HOUR_END_INCLUSIVE) {
+                val row = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = rowLayoutParams
+                }
+                val hourLabelBg = R.drawable.bg_schedule_day_label
+                row.addView(
+                    TextView(context).apply {
+                        text = context.getString(R.string.schedule_hour_label, hour)
+                        setPadding(padS, padM, padS, padM)
+                        gravity = Gravity.CENTER
+                        setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                        textSize = 11f
+                        setBackgroundResource(hourLabelBg)
+                        layoutParams = LinearLayout.LayoutParams(labelColW, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                            minimumHeight = rowMinH
+                        }
+                    },
+                )
+                for (dayIndex in 0..6) {
+                    val slot = mockSlot(dayIndex, hour, weekOffset, dayHoursList)
+                    val freeBg = if (dayIndex % 2 == 0) {
+                        R.drawable.bg_schedule_slot_free
+                    } else {
+                        R.drawable.bg_schedule_slot_free_alt
+                    }
+                    val cw = dayCellWidth(dayIndex)
+                    row.addView(
+                        TextView(context).apply {
+                            gravity = Gravity.CENTER
+                            maxLines = 3
+                            textSize = 7.5f
+                            setPadding(padS, padS, padS, padS)
+                            layoutParams = LinearLayout.LayoutParams(cw, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                                minimumHeight = rowMinH
+                            }
+                            when (slot) {
+                                Slot.FREE -> {
+                                    text = ""
+                                    setBackgroundResource(freeBg)
+                                }
+                                Slot.BOOKED -> {
+                                    text = context.getString(R.string.schedule_already_booked)
+                                    setTextColor(ContextCompat.getColor(context, R.color.schedule_slot_booked_text))
+                                    setBackgroundResource(R.drawable.bg_schedule_slot_booked)
+                                }
+                                Slot.CLOSED -> {
+                                    text = ""
+                                    background = hatchedBackground(context, cw, rowMinH)
+                                }
+                            }
+                        },
+                    )
+                }
+                container.addView(row)
+            }
         }
+
+        fun scheduleBuild() {
+            val w = container.width
+            if (w > 0) {
+                buildAtWidth(w)
+                return
+            }
+            val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    val width = container.width
+                    if (width > 0) {
+                        container.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        buildAtWidth(width)
+                    }
+                }
+            }
+            container.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        }
+
+        container.post { scheduleBuild() }
     }
 
     private fun headerCell(
@@ -210,10 +283,10 @@ object MasterScheduleUi {
         layoutParams = LinearLayout.LayoutParams(widthPx, heightPx)
     }
 
-    private fun hatchedBackground(context: Context): Drawable {
+    private fun hatchedBackground(context: Context, widthPx: Int, heightPx: Int): Drawable {
         val d = context.resources.displayMetrics.density
-        val w = (40 * d).toInt().coerceAtLeast(32)
-        val h = (44 * d).toInt().coerceAtLeast(32)
+        val w = widthPx.coerceAtLeast((40 * d).toInt().coerceAtLeast(32))
+        val h = heightPx.coerceAtLeast((44 * d).toInt().coerceAtLeast(32))
         val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val base = ContextCompat.getColor(context, R.color.schedule_hatch_base)
