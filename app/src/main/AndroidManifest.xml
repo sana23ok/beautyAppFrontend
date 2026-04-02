@@ -42,6 +42,11 @@
             android:theme="@style/Theme.BeautyAppFrontend.LightStatusBar" />
 
         <activity
+            android:name=".ui.screens.MasterDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BeautyAppFrontend.LightStatusBar" />
+
+        <activity
             android:name=".ui.screens.ChatActivity"
             android:exported="false"
             android:theme="@style/Theme.BeautyAppFrontend.LightStatusBar" />

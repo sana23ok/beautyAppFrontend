@@ -74,8 +74,7 @@ class SearchPageActivity : AppCompatActivity() {
         adapter = SpecialistAdapter(
             specialists    = emptyList(),
             onViewClick    = { s ->
-                Log.d(TAG, "View: ${s.name}")
-                Toast.makeText(this, "View ${s.name}", Toast.LENGTH_SHORT).show()
+                openMasterProfile(s)
             },
             onMessageClick = { s ->
                 Log.d(TAG, "Message: ${s.name}")
@@ -84,6 +83,13 @@ class SearchPageActivity : AppCompatActivity() {
         )
         binding.rvSpecialists.layoutManager = LinearLayoutManager(this)
         binding.rvSpecialists.adapter       = adapter
+    }
+
+    private fun openMasterProfile(specialist: Specialist) {
+        val intent = Intent(this, MasterDetailActivity::class.java).apply {
+            putExtra(MasterDetailActivity.EXTRA_MASTER_ID, specialist.id)
+        }
+        startActivity(intent)
     }
 
     private fun startConversationWith(specialist: Specialist) {

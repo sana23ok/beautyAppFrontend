@@ -13,6 +13,20 @@ data class MasterWorkPhotoResponse(
     val caption: String = "",
 )
 
+data class MasterServiceRequest(
+    val name: String,
+    val price: Int = 0,
+    @SerializedName("duration_minutes") val durationMinutes: Int = 0,
+)
+
+data class MasterServiceResponse(
+    val id: Int? = null,
+    val name: String = "",
+    /** API may send integer or decimal; Gson is more reliable with Double. */
+    val price: Double = 0.0,
+    @SerializedName("duration_minutes") val durationMinutes: Int = 0,
+)
+
 data class MasterProfileRequest(
     val name: String,
     val specialization: String,
@@ -28,7 +42,8 @@ data class MasterProfileRequest(
     @SerializedName("friday_hours") val fridayHours: String = "",
     @SerializedName("saturday_hours") val saturdayHours: String = "",
     @SerializedName("sunday_hours") val sundayHours: String = "",
-    @SerializedName("work_photos") val workPhotos: List<MasterWorkPhotoRequest> = emptyList()
+    @SerializedName("work_photos") val workPhotos: List<MasterWorkPhotoRequest> = emptyList(),
+    val services: List<MasterServiceRequest> = emptyList(),
 )
 
 data class MasterProfileResponse(
@@ -40,6 +55,7 @@ data class MasterProfileResponse(
     val address: String = "",
     @SerializedName("experience_years") val experienceYears: Int = 0,
     val description: String = "",
+    val rating: Float = 0f,
     @SerializedName("profile_photo") val profilePhoto: String = "",
     @SerializedName("monday_hours") val mondayHours: String = "",
     @SerializedName("tuesday_hours") val tuesdayHours: String = "",
@@ -49,6 +65,7 @@ data class MasterProfileResponse(
     @SerializedName("saturday_hours") val saturdayHours: String = "",
     @SerializedName("sunday_hours") val sundayHours: String = "",
     @SerializedName("work_photos") val workPhotos: List<MasterWorkPhotoResponse> = emptyList(),
+    val services: List<MasterServiceResponse> = emptyList(),
 )
 
 data class MasterProfileDraft(
@@ -70,5 +87,14 @@ data class MasterProfileDraft(
     val thursdayHours: String = "",
     val fridayHours: String = "",
     val saturdayHours: String = "",
-    val sundayHours: String = ""
+    val sundayHours: String = "",
+    /** Price list rows (name + price in UAH). */
+    val services: List<MasterServiceItem> = emptyList(),
+)
+
+data class MasterServiceItem(
+    val name: String = "",
+    val price: Int = 0,
+    /** Procedure length in minutes. */
+    val durationMinutes: Int = 0,
 )
