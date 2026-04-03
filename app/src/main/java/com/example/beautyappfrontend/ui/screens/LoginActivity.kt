@@ -168,7 +168,7 @@ class LoginActivity : AppCompatActivity() {
                     binding.btnLogin.alpha = 0.6f
                 }
                 is AuthState.Success -> {
-                    session.saveToken(state.token)
+                    session.saveTokens(state.token, state.refreshToken)
                     session.saveUserInfo(state.user)
                     session.saveIsMaster(state.user?.isMaster == true)
                     navigateToHome()

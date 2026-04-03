@@ -589,6 +589,29 @@
                                 app:tint="@color/peach_dark" />
                         </LinearLayout>
 
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:gravity="end"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btn_edit_schedule"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_outlined_peach"
+                                android:minWidth="0dp"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:stateListAnimator="@null"
+                                android:text="@string/schedule_edit_button"
+                                android:textAllCaps="false"
+                                android:textColor="@color/peach_dark"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
                         <HorizontalScrollView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"

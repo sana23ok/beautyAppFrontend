@@ -244,6 +244,9 @@ class ProfileActivity : AppCompatActivity() {
                 renderSchedule(session.getMasterDraft())
             }
         }
+        binding.btnEditSchedule.setOnClickListener {
+            openMasterEditDialog()
+        }
     }
 
     private fun setupBottomNav() {
@@ -312,6 +315,8 @@ class ProfileActivity : AppCompatActivity() {
         binding.tvMasterHelper.visibility = if (draft.masterId == null) View.VISIBLE else View.GONE
         binding.btnSaveMasterProfile.visibility = if (draft.masterId == null) View.VISIBLE else View.GONE
         binding.btnSaveMasterProfile.text = "Create master profile"
+
+        binding.btnEditSchedule.visibility = if (draft.masterId != null) View.VISIBLE else View.GONE
 
         renderAvatar(draft.profilePhoto.ifBlank { session.getAvatarUrl().orEmpty() })
         renderWorkGallery(draft)

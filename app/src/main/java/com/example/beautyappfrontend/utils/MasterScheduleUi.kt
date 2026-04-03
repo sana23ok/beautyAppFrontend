@@ -19,11 +19,6 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
-/**
- * Weekly timetable (transposed): each row is an hour [HOUR_START..HOUR_END], columns are Mon–Sun.
- * Each cell = that hour on that day. Optional per-day strings (e.g. "9:00 – 18:00") mark slots
- * outside the range as CLOSED. Otherwise demo rules apply for closed/booked slots.
- */
 object MasterScheduleUi {
 
     private const val HOUR_START = 8

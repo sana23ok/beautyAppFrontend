@@ -19,7 +19,11 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = repository.login(email, password)
-                _authState.value = AuthState.Success(response.authToken, response.user)
+                _authState.value = AuthState.Success(
+                    token = response.authToken,
+                    refreshToken = response.tokens?.refresh,
+                    user = response.user,
+                )
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Login failed")
             }
@@ -45,7 +49,11 @@ class AuthViewModel : ViewModel() {
                     phoneNumber = phoneNumber,
                     isMaster = isMaster,
                 )
-                _authState.value = AuthState.Success(response.authToken, response.user)
+                _authState.value = AuthState.Success(
+                    token = response.authToken,
+                    refreshToken = response.tokens?.refresh,
+                    user = response.user,
+                )
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Registration failed")
             }
@@ -57,7 +65,11 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = repository.googleSignIn(idToken)
-                _authState.value = AuthState.Success(response.authToken, response.user)
+                _authState.value = AuthState.Success(
+                    token = response.authToken,
+                    refreshToken = response.tokens?.refresh,
+                    user = response.user,
+                )
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Google Sign-In failed")
             }

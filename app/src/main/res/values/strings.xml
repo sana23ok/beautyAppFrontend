@@ -31,6 +31,7 @@
     <!-- One arg: hour 8–19 for timetable row label (transposed grid) -->
     <string name="schedule_hour_label">%d</string>
     <string name="schedule_column_hours">Hours</string>
+    <string name="schedule_edit_button">Edit schedule</string>
 
     <!-- Master profile: price list -->
     <string name="master_price_list_title">Services &amp; prices</string>

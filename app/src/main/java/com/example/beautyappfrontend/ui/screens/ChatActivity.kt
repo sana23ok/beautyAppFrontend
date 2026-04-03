@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -97,6 +98,13 @@ class ChatActivity : AppCompatActivity() {
                 Log.d(TAG, "Loaded ${allConversations.size} conversations")
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading conversations", e)
+                if (e.message?.contains("401") == true) {
+                    Toast.makeText(
+                        this@ChatActivity,
+                        "Session expired. Please sign out and sign in again.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
                 allConversations = emptyList()
                 adapter.updateData(emptyList())
                 updateEmptyState(true)

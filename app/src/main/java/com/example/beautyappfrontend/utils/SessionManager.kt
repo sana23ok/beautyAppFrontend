@@ -17,7 +17,26 @@ class SessionManager(context: Context) {
         prefs.edit().putString(KEY_TOKEN, token).apply()
     }
 
+    fun saveRefreshToken(refresh: String) {
+        prefs.edit().putString(KEY_REFRESH_TOKEN, refresh).apply()
+    }
+
+    /**
+     * Persists access + optional refresh JWT. If [refresh] is null/blank, refresh token is removed.
+     */
+    fun saveTokens(access: String, refresh: String?) {
+        val e = prefs.edit().putString(KEY_TOKEN, access)
+        if (refresh.isNullOrBlank()) {
+            e.remove(KEY_REFRESH_TOKEN)
+        } else {
+            e.putString(KEY_REFRESH_TOKEN, refresh)
+        }
+        e.apply()
+    }
+
     fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
+
+    fun getRefreshToken(): String? = prefs.getString(KEY_REFRESH_TOKEN, null)
 
     fun isLoggedIn(): Boolean = !getToken().isNullOrEmpty()
 
@@ -184,6 +203,7 @@ class SessionManager(context: Context) {
     companion object {
         private const val TAG            = "SessionManager"
         private const val KEY_TOKEN      = "access_token"
+        private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_ID    = "user_id"
         private const val KEY_USERNAME   = "username"
         private const val KEY_EMAIL      = "email"

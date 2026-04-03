@@ -1,25 +1,38 @@
 package com.example.beautyappfrontend.data.remote
 
+import android.content.Context
 import com.example.beautyappfrontend.BuildConfig
+import com.example.beautyappfrontend.utils.SessionManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
-    // Port 8000 — same as: python manage.py runserver 0.0.0.0:8000
-    // Emulator default: http://10.0.2.2:8000/  |  Real device: set api.base.url in local.properties
+
+    private lateinit var appContext: Context
+
+    /**
+     * Call from [com.example.beautyappfrontend.BeautyApp.onCreate] before any Retrofit usage.
+     */
+    fun init(applicationContext: Context) {
+        appContext = applicationContext.applicationContext
+    }
+
+    private fun session(): SessionManager = SessionManager(appContext)
+
     private val BASE_URL: String = BuildConfig.API_BASE_URL
 
-    // Logs every request URL + headers + body AND every response body to Logcat.
-    // Filter Logcat by tag "OkHttp" to see the full HTTP traffic.
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .build()
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .authenticator(TokenAuthenticator(session()))
+            .build()
+    }
 
     val api: BeautyApi by lazy {
         Retrofit.Builder()

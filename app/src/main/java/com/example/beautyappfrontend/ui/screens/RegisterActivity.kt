@@ -176,7 +176,7 @@ class RegisterActivity : AppCompatActivity() {
                 }
                 is AuthState.Success -> {
                     val session = SessionManager(this)
-                    session.saveToken(state.token)
+                    session.saveTokens(state.token, state.refreshToken)
                     session.saveUserInfo(state.user)
                     session.saveIsMaster(state.user?.isMaster == true || pendingIsMaster)
                     navigateAfterRegistration()
