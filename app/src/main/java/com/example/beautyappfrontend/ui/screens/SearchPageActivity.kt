@@ -86,6 +86,10 @@ class SearchPageActivity : AppCompatActivity() {
     }
 
     private fun openMasterProfile(specialist: Specialist) {
+        if (specialist.id <= 0) {
+            Toast.makeText(this, "Invalid master profile", Toast.LENGTH_SHORT).show()
+            return
+        }
         val intent = Intent(this, MasterDetailActivity::class.java).apply {
             putExtra(MasterDetailActivity.EXTRA_MASTER_ID, specialist.id)
         }

@@ -3,7 +3,9 @@ package com.example.beautyappfrontend.ui.screens
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NavUtils
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.beautyappfrontend.R
@@ -29,7 +31,22 @@ class MasterDetailActivity : AppCompatActivity() {
             return
         }
 
-        binding.btnBack.setOnClickListener { finish() }
+        fun goBack() {
+            val up = NavUtils.getParentActivityIntent(this)
+            if (up != null && navigateUpTo(up)) {
+                return
+            }
+            finish()
+        }
+        binding.btnBack.setOnClickListener { goBack() }
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    goBack()
+                }
+            },
+        )
 
         binding.progress.visibility = View.VISIBLE
         binding.scrollContent.visibility = View.GONE

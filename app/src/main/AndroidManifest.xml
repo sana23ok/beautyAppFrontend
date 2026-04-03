@@ -45,6 +45,7 @@
         <activity
             android:name=".ui.screens.MasterDetailActivity"
             android:exported="false"
+            android:parentActivityName=".ui.screens.SearchPageActivity"
             android:theme="@style/Theme.BeautyAppFrontend.LightStatusBar" />
 
         <activity
