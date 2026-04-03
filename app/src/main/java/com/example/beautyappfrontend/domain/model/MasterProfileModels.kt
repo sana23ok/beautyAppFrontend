@@ -2,6 +2,36 @@ package com.example.beautyappfrontend.domain.model
 
 import com.google.gson.annotations.SerializedName
 
+/** Local-only grid: 4 weeks × Mon–Sun; hour ints **8–19**. Empty = not working. */
+object MasterScheduleData {
+    const val WEEK_COUNT = 4
+    const val DAY_COUNT = 7
+    const val HOUR_START = 8
+    const val HOUR_END_INCLUSIVE = 19
+
+    fun empty(): List<List<List<Int>>> =
+        List(WEEK_COUNT) { List(DAY_COUNT) { emptyList() } }
+}
+
+fun normalizeScheduleWeeks(raw: List<List<List<Int>>>?): List<List<List<Int>>> {
+    val out = mutableListOf<MutableList<List<Int>>>()
+    for (wi in 0 until MasterScheduleData.WEEK_COUNT) {
+        val weekIn = raw?.getOrNull(wi)
+        val days = mutableListOf<List<Int>>()
+        for (di in 0 until MasterScheduleData.DAY_COUNT) {
+            val dayIn = weekIn?.getOrNull(di)
+            val hours = dayIn
+                ?.filter { it in MasterScheduleData.HOUR_START..MasterScheduleData.HOUR_END_INCLUSIVE }
+                ?.distinct()
+                ?.sorted()
+                ?: emptyList()
+            days.add(hours)
+        }
+        out.add(days.toMutableList())
+    }
+    return out
+}
+
 data class MasterWorkPhotoRequest(
     @SerializedName("photo_url") val photoUrl: String,
     val caption: String = ""
@@ -88,6 +118,8 @@ data class MasterProfileDraft(
     val fridayHours: String = "",
     val saturdayHours: String = "",
     val sundayHours: String = "",
+    /** Local-only (not sent to API yet). */
+    val scheduleWeeks: List<List<List<Int>>> = MasterScheduleData.empty(),
     /** Price list rows (name + price in UAH). */
     val services: List<MasterServiceItem> = emptyList(),
 )

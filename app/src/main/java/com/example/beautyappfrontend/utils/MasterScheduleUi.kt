@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.beautyappfrontend.R
+import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -26,7 +27,6 @@ object MasterScheduleUi {
 
     enum class Slot {
         FREE,
-        BOOKED,
         CLOSED,
     }
 
@@ -60,71 +60,20 @@ object MasterScheduleUi {
         return "${weekRangeFormat.format(start)} – ${weekRangeFormat.format(end)} ${yearFormat.format(end)}"
     }
 
-    /**
-     * Parses strings like "9:00 – 18:00", "8:00-20:00", "8 — 20".
-     * Returns half-open range of slot indices [start, end) intersected with the grid (each slot = hour h).
-     */
-    private fun parseWorkingSlotRange(dayHours: String): IntRange? {
-        if (dayHours.isBlank()) return null
-        val m = Regex("""(\d{1,2})\s*[:-–—]\s*(\d{1,2})""").find(dayHours) ?: return null
-        val start = m.groupValues[1].toIntOrNull()?.coerceIn(0, 23) ?: return null
-        val end = m.groupValues[2].toIntOrNull()?.coerceIn(0, 24) ?: return null
-        if (start >= end) return null
-        val slotStart = start.coerceAtLeast(HOUR_START)
-        val slotEndExclusive = end.coerceAtMost(HOUR_END_INCLUSIVE + 1).coerceAtLeast(slotStart + 1)
-        if (slotStart >= slotEndExclusive) return null
-        return slotStart until slotEndExclusive
-    }
-
-    /** Mock: varies by week + day + hour; [dayHours] can force CLOSED outside working range. */
-    fun mockSlot(
+    fun slotState(
         dayIndex: Int,
         hour: Int,
         weekOffset: Int,
-        dayHoursList: List<String> = List(7) { "" },
+        scheduleWeeks: List<List<List<Int>>> = MasterScheduleData.empty(),
     ): Slot {
-        val range = dayHoursList.getOrNull(dayIndex)?.let { parseWorkingSlotRange(it) }
-        if (range != null && hour !in range) return Slot.CLOSED
-
-        // Not working (hatched): weekend mornings + some blocks (only when no custom hours)
-        if (range == null && dayIndex >= 5 && hour < 11) return Slot.CLOSED
-        if (range == null && dayIndex == 0 && hour == 8) return Slot.CLOSED
-        if (range == null && dayIndex == 1 && hour >= 17) return Slot.CLOSED
-        if (range == null && dayIndex == 0 && hour == 12) return Slot.CLOSED
-
-        // Booked (dark + label)
-        return when (weekOffset) {
-            0 -> when {
-                dayIndex == 0 && hour == 10 -> Slot.BOOKED
-                dayIndex == 2 && hour == 14 -> Slot.BOOKED
-                dayIndex == 4 && hour == 16 -> Slot.BOOKED
-                else -> Slot.FREE
-            }
-            1 -> when {
-                dayIndex == 1 && hour == 11 -> Slot.BOOKED
-                dayIndex == 3 && hour == 9 -> Slot.BOOKED
-                dayIndex == 2 && hour == 14 -> Slot.BOOKED
-                else -> Slot.FREE
-            }
-            2 -> when {
-                dayIndex == 0 && hour == 15 -> Slot.BOOKED
-                dayIndex == 4 && hour == 11 -> Slot.BOOKED
-                else -> Slot.FREE
-            }
-            3 -> when {
-                dayIndex == 0 && hour == 9 -> Slot.BOOKED
-                dayIndex == 5 && hour == 14 -> Slot.BOOKED
-                dayIndex == 4 && hour == 16 -> Slot.BOOKED
-                else -> Slot.FREE
-            }
-            else -> Slot.FREE
-        }
+        val hours = scheduleWeeks.getOrNull(weekOffset)?.getOrNull(dayIndex).orEmpty()
+        return if (hour in hours) Slot.FREE else Slot.CLOSED
     }
 
     fun populateGrid(
         container: LinearLayout,
         weekOffset: Int,
-        dayHoursList: List<String> = List(7) { "" },
+        scheduleWeeks: List<List<List<Int>>> = MasterScheduleData.empty(),
     ) {
         val context = container.context
         container.removeAllViews()
@@ -203,7 +152,7 @@ object MasterScheduleUi {
                     },
                 )
                 for (dayIndex in 0..6) {
-                    val slot = mockSlot(dayIndex, hour, weekOffset, dayHoursList)
+                    val slot = slotState(dayIndex, hour, weekOffset, scheduleWeeks)
                     val freeBg = if (dayIndex % 2 == 0) {
                         R.drawable.bg_schedule_slot_free
                     } else {
@@ -223,11 +172,6 @@ object MasterScheduleUi {
                                 Slot.FREE -> {
                                     text = ""
                                     setBackgroundResource(freeBg)
-                                }
-                                Slot.BOOKED -> {
-                                    text = context.getString(R.string.schedule_already_booked)
-                                    setTextColor(ContextCompat.getColor(context, R.color.schedule_slot_booked_text))
-                                    setBackgroundResource(R.drawable.bg_schedule_slot_booked)
                                 }
                                 Slot.CLOSED -> {
                                     text = ""

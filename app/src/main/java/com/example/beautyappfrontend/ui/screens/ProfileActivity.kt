@@ -24,11 +24,14 @@ import com.example.beautyappfrontend.data.repository.AuthRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityProfileBinding
 import com.example.beautyappfrontend.databinding.DialogMasterProfileEditBinding
+import com.example.beautyappfrontend.databinding.DialogMasterScheduleEditBinding
 import com.example.beautyappfrontend.databinding.DialogUserProfileEditBinding
 import com.example.beautyappfrontend.domain.model.MasterProfileDraft
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
+import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.MasterScheduleUi
@@ -245,7 +248,7 @@ class ProfileActivity : AppCompatActivity() {
             }
         }
         binding.btnEditSchedule.setOnClickListener {
-            openMasterEditDialog()
+            openScheduleEditDialog()
         }
     }
 
@@ -434,16 +437,82 @@ class ProfileActivity : AppCompatActivity() {
         binding.btnSchedulePrev.alpha = if (scheduleWeekOffset > 0) 1f else 0.35f
         binding.btnScheduleNext.isEnabled = scheduleWeekOffset < 3
         binding.btnScheduleNext.alpha = if (scheduleWeekOffset < 3) 1f else 0.35f
-        val dayHours = listOf(
-            draft.mondayHours,
-            draft.tuesdayHours,
-            draft.wednesdayHours,
-            draft.thursdayHours,
-            draft.fridayHours,
-            draft.saturdayHours,
-            draft.sundayHours,
+        MasterScheduleUi.populateGrid(
+            binding.layoutScheduleGrid,
+            scheduleWeekOffset,
+            normalizeScheduleWeeks(draft.scheduleWeeks),
         )
-        MasterScheduleUi.populateGrid(binding.layoutScheduleGrid, scheduleWeekOffset, dayHours)
+    }
+
+    private fun openScheduleEditDialog() {
+        if (!session.isMaster()) return
+        if (session.getToken().isNullOrBlank()) {
+            Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val draft = session.getMasterDraft()
+        if (draft.masterId == null) {
+            Toast.makeText(this, "Create your master profile first", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val bind = DialogMasterScheduleEditBinding.inflate(layoutInflater)
+        var editWeek = scheduleWeekOffset.coerceIn(0, MasterScheduleData.WEEK_COUNT - 1)
+
+        val weeks = normalizeScheduleWeeks(draft.scheduleWeeks).map { week ->
+            week.map { hours -> hours.toMutableList() }.toMutableList()
+        }.toMutableList()
+
+        fun weekFromGrid(): MutableList<MutableList<Int>> {
+            return bind.scheduleGridEdit.getWeek().map { it.toMutableList() }.toMutableList()
+        }
+
+        fun applyWeekToGrid() {
+            bind.tvScheduleEditWeek.text = MasterScheduleUi.weekRangeLabel(editWeek)
+            bind.btnScheduleEditPrev.isEnabled = editWeek > 0
+            bind.btnScheduleEditPrev.alpha = if (editWeek > 0) 1f else 0.35f
+            bind.btnScheduleEditNext.isEnabled = editWeek < MasterScheduleData.WEEK_COUNT - 1
+            bind.btnScheduleEditNext.alpha =
+                if (editWeek < MasterScheduleData.WEEK_COUNT - 1) 1f else 0.35f
+            bind.scheduleGridEdit.setWeek(weeks[editWeek].map { it.toList() })
+        }
+
+        applyWeekToGrid()
+
+        bind.btnScheduleEditPrev.setOnClickListener {
+            weeks[editWeek] = weekFromGrid()
+            if (editWeek > 0) {
+                editWeek--
+                applyWeekToGrid()
+            }
+        }
+        bind.btnScheduleEditNext.setOnClickListener {
+            weeks[editWeek] = weekFromGrid()
+            if (editWeek < MasterScheduleData.WEEK_COUNT - 1) {
+                editWeek++
+                applyWeekToGrid()
+            }
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.schedule_edit_dialog_title)
+            .setView(bind.root)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.schedule_edit_save, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                weeks[editWeek] = weekFromGrid()
+                val normalized = normalizeScheduleWeeks(weeks.map { w -> w.map { it.toList() } })
+                val updated = draft.copy(scheduleWeeks = normalized)
+                session.saveMasterDraft(updated)
+                populateUserData()
+                dialog.dismiss()
+                Toast.makeText(this, R.string.schedule_saved_local, Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
     }
 
     private fun openUserEditDialog() {
@@ -660,6 +729,7 @@ class ProfileActivity : AppCompatActivity() {
         }
 
         val workPhotoUrls = if (workPhotoUrl.isNotBlank()) listOf(workPhotoUrl) else emptyList()
+        val base = session.getMasterDraft()
         return MasterProfileDraft(
             masterId = masterId,
             name = name,
@@ -679,6 +749,7 @@ class ProfileActivity : AppCompatActivity() {
             fridayHours = dialogBinding.etFridayHours.text.toString().trim(),
             saturdayHours = dialogBinding.etSaturdayHours.text.toString().trim(),
             sundayHours = dialogBinding.etSundayHours.text.toString().trim(),
+            scheduleWeeks = base.scheduleWeeks,
         )
     }
 
@@ -739,6 +810,7 @@ class ProfileActivity : AppCompatActivity() {
             fridayHours = fridayHours,
             saturdayHours = saturdayHours,
             sundayHours = sundayHours,
+            scheduleWeeks = session.getMasterDraft().scheduleWeeks,
         )
     }
 

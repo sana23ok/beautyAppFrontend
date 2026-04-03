@@ -2,14 +2,19 @@ package com.example.beautyappfrontend.utils
 
 import android.content.Context
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.json.JSONArray
 import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.MasterProfileDraft
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterScheduleData
 
 class SessionManager(context: Context) {
 
     private val prefs = context.getSharedPreferences("beauty_app_auth", Context.MODE_PRIVATE)
+    private val gson = Gson()
+    private val scheduleWeeksType = object : TypeToken<List<List<List<Int>>>>() {}.type
 
     // ── Token ─────────────────────────────────────────────────────────────────
 
@@ -141,6 +146,7 @@ class SessionManager(context: Context) {
             .putString(KEY_MASTER_FRIDAY_HOURS, draft.fridayHours)
             .putString(KEY_MASTER_SATURDAY_HOURS, draft.saturdayHours)
             .putString(KEY_MASTER_SUNDAY_HOURS, draft.sundayHours)
+            .putString(KEY_MASTER_SCHEDULE_WEEKS_JSON, scheduleWeeksToJson(draft.scheduleWeeks))
             .apply()
     }
 
@@ -175,6 +181,7 @@ class SessionManager(context: Context) {
             fridayHours = prefs.getString(KEY_MASTER_FRIDAY_HOURS, "") ?: "",
             saturdayHours = prefs.getString(KEY_MASTER_SATURDAY_HOURS, "") ?: "",
             sundayHours = prefs.getString(KEY_MASTER_SUNDAY_HOURS, "") ?: "",
+            scheduleWeeks = parseScheduleWeeks(prefs.getString(KEY_MASTER_SCHEDULE_WEEKS_JSON, null)),
         )
     }
 
@@ -197,6 +204,17 @@ class SessionManager(context: Context) {
             (0 until arr.length()).map { arr.getString(it) }.filter { it.isNotBlank() }
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    private fun scheduleWeeksToJson(sw: List<List<List<Int>>>): String = gson.toJson(sw)
+
+    private fun parseScheduleWeeks(json: String?): List<List<List<Int>>> {
+        if (json.isNullOrBlank()) return MasterScheduleData.empty()
+        return try {
+            gson.fromJson<List<List<List<Int>>>>(json, scheduleWeeksType) ?: MasterScheduleData.empty()
+        } catch (_: Exception) {
+            MasterScheduleData.empty()
         }
     }
 
@@ -230,5 +248,6 @@ class SessionManager(context: Context) {
         private const val KEY_MASTER_FRIDAY_HOURS = "master_friday_hours"
         private const val KEY_MASTER_SATURDAY_HOURS = "master_saturday_hours"
         private const val KEY_MASTER_SUNDAY_HOURS = "master_sunday_hours"
+        private const val KEY_MASTER_SCHEDULE_WEEKS_JSON = "master_schedule_weeks_json"
     }
 }
