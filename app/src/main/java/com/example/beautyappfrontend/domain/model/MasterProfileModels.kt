@@ -69,6 +69,18 @@ data class MasterWeekTimetableResponse(
     @SerializedName("sunday_hours") val sundayHours: String = "",
 )
 
+/** POST/PATCH body for `/api/masters/me/week-schedules/`. */
+data class MasterWeekTimetableWriteRequest(
+    @SerializedName("week_start") val weekStart: String,
+    @SerializedName("monday_hours") val mondayHours: String = "",
+    @SerializedName("tuesday_hours") val tuesdayHours: String = "",
+    @SerializedName("wednesday_hours") val wednesdayHours: String = "",
+    @SerializedName("thursday_hours") val thursdayHours: String = "",
+    @SerializedName("friday_hours") val fridayHours: String = "",
+    @SerializedName("saturday_hours") val saturdayHours: String = "",
+    @SerializedName("sunday_hours") val sundayHours: String = "",
+)
+
 data class MasterProfileRequest(
     val name: String,
     val specialization: String,

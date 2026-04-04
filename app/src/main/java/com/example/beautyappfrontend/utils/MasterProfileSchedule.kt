@@ -19,6 +19,12 @@ object MasterProfileSchedule {
         timeZone = TimeZone.getDefault()
     }
 
+    /** Monday date `yyyy-MM-dd` for the given week offset (same logic as week keys in [buildScheduleWeeks]). */
+    fun mondayDateKeyForWeekOffset(weekOffset: Int): String {
+        val monday = mondayCalendarForOffset(weekOffset)
+        return weekKeyFormat.format(monday.time)
+    }
+
     fun buildScheduleWeeks(master: MasterProfileResponse): List<List<List<Int>>> {
         val defaultWeek = weekFromDayStrings(
             listOf(

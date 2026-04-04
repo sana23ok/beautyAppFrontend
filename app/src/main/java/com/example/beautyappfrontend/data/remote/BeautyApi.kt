@@ -11,6 +11,8 @@ import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
+import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
 import com.example.beautyappfrontend.domain.model.MessageResponse
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.SendMessageRequest
@@ -95,6 +97,24 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Body request: MasterProfileRequest,
     ): Response<MasterProfileResponse>
+
+    @GET("api/masters/me/week-schedules/")
+    suspend fun getMyWeekSchedules(
+        @Header("Authorization") authHeader: String,
+    ): Response<List<MasterWeekTimetableResponse>>
+
+    @POST("api/masters/me/week-schedules/")
+    suspend fun createMyWeekSchedule(
+        @Header("Authorization") authHeader: String,
+        @Body body: MasterWeekTimetableWriteRequest,
+    ): Response<MasterWeekTimetableResponse>
+
+    @PATCH("api/masters/me/week-schedules/{id}/")
+    suspend fun patchMyWeekSchedule(
+        @Header("Authorization") authHeader: String,
+        @Path("id") id: Int,
+        @Body body: MasterWeekTimetableWriteRequest,
+    ): Response<MasterWeekTimetableResponse>
 
     @GET("api/masters/{id}/")
     suspend fun getMasterProfile(@Path("id") id: Int): Response<MasterProfileResponse>

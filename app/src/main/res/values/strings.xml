@@ -36,6 +36,7 @@
     <string name="schedule_edit_dialog_hint">All cells start as not working. Drag to select working hours. Use arrows for each of the four weeks. Saved on this device only.</string>
     <string name="schedule_edit_save">Save</string>
     <string name="schedule_saved_local">Schedule saved</string>
+    <string name="schedule_saved_remote">Schedule saved to your account</string>
 
     <!-- Master profile: price list -->
     <string name="master_price_list_title">Services &amp; prices</string>

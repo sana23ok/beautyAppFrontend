@@ -36,6 +36,8 @@ import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
+import com.example.beautyappfrontend.utils.MasterProfileSchedule
+import com.example.beautyappfrontend.utils.MasterScheduleFormat
 import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
@@ -507,11 +509,33 @@ class ProfileActivity : AppCompatActivity() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 weeks[editWeek] = weekFromGrid()
                 val normalized = normalizeScheduleWeeks(weeks.map { w -> w.map { it.toList() } })
-                val updated = draft.copy(scheduleWeeks = normalized)
-                session.saveMasterDraft(updated)
-                populateUserData()
-                dialog.dismiss()
-                Toast.makeText(this, R.string.schedule_saved_local, Toast.LENGTH_SHORT).show()
+                val updatedDraft = draft.copy(scheduleWeeks = normalized)
+                val token = session.getToken()
+                if (token.isNullOrBlank()) {
+                    Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                lifecycleScope.launch {
+                    try {
+                        masterRepository.upsertWeekTimetablesFromGrid(token, normalized)
+                        masterRepository.updateMyMasterProfile(token, updatedDraft.toRequestWithScheduleFromGrid())
+                        val master = masterRepository.getMyMasterProfile(token)
+                        session.saveMasterProfile(master)
+                        session.saveMasterDraft(master.toDraft())
+                        populateUserData()
+                        dialog.dismiss()
+                        Toast.makeText(this@ProfileActivity, R.string.schedule_saved_remote, Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@ProfileActivity,
+                            e.message ?: getString(R.string.load_failed),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    } finally {
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
+                    }
+                }
             }
         }
         dialog.show()
@@ -797,6 +821,21 @@ class ProfileActivity : AppCompatActivity() {
         )
     }
 
+    /** Updates [MasterProfileRequest] day-hour strings from week 0 of [scheduleWeeks] (for `/api/masters/me/`). */
+    private fun MasterProfileDraft.toRequestWithScheduleFromGrid(): MasterProfileRequest {
+        val base = toRequest()
+        val w0 = normalizeScheduleWeeks(scheduleWeeks).getOrNull(0) ?: return base
+        return base.copy(
+            mondayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(0).orEmpty()),
+            tuesdayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(1).orEmpty()),
+            wednesdayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(2).orEmpty()),
+            thursdayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(3).orEmpty()),
+            fridayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(4).orEmpty()),
+            saturdayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(5).orEmpty()),
+            sundayHours = MasterScheduleFormat.daySlotsToString(w0.getOrNull(6).orEmpty()),
+        )
+    }
+
     private fun MasterProfileResponse.toDraft(): MasterProfileDraft {
         val profile = profilePhoto.trim()
         val photos = workPhotos.orEmpty()
@@ -821,7 +860,7 @@ class ProfileActivity : AppCompatActivity() {
             fridayHours = fridayHours,
             saturdayHours = saturdayHours,
             sundayHours = sundayHours,
-            scheduleWeeks = session.getMasterDraft().scheduleWeeks,
+            scheduleWeeks = normalizeScheduleWeeks(MasterProfileSchedule.buildScheduleWeeks(this)),
             services = services.orEmpty().map { s ->
                 MasterServiceItem(
                     name = s.name,

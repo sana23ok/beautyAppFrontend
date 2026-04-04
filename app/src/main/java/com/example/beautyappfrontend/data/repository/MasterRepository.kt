@@ -4,6 +4,12 @@ import android.util.Log
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterScheduleData
+import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
+import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
+import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
+import com.example.beautyappfrontend.utils.MasterProfileSchedule
+import com.example.beautyappfrontend.utils.MasterScheduleFormat
 import com.google.gson.Gson
 
 class MasterRepository {
@@ -79,6 +85,57 @@ class MasterRepository {
         val msg = formatHttpError(response.code(), errorBody)
         Log.e(TAG, "<<< UPDATE MASTER PROFILE ERROR: $msg")
         throw Exception(msg)
+    }
+
+    /** GET /api/masters/me/week-schedules/ */
+    suspend fun getMyWeekSchedules(token: String): List<MasterWeekTimetableResponse> {
+        val response = RetrofitInstance.api.getMyWeekSchedules("Bearer $token")
+        if (response.isSuccessful) {
+            return response.body() ?: emptyList()
+        }
+        val errorBody = response.errorBody()?.string()
+        throw Exception(formatHttpError(response.code(), errorBody))
+    }
+
+    /**
+     * Upserts four weekly rows (current + 3 weeks) and updates the master template hours from week 0.
+     * Call [updateMyMasterProfile] with hours derived from the grid separately via [MasterProfileRequest].
+     */
+    suspend fun upsertWeekTimetablesFromGrid(token: String, scheduleWeeks: List<List<List<Int>>>) {
+        val normalized = normalizeScheduleWeeks(scheduleWeeks)
+        val existing = getMyWeekSchedules(token)
+        val byMonday = existing.associateBy { it.weekStart.trim().take(10) }
+
+        for (offset in 0 until MasterScheduleData.WEEK_COUNT) {
+            val monday = MasterProfileSchedule.mondayDateKeyForWeekOffset(offset)
+            val week = normalized.getOrNull(offset) ?: continue
+            val dayStrings = MasterScheduleFormat.weekGridToDayStrings(week)
+            val body = MasterWeekTimetableWriteRequest(
+                weekStart = monday,
+                mondayHours = dayStrings[0],
+                tuesdayHours = dayStrings[1],
+                wednesdayHours = dayStrings[2],
+                thursdayHours = dayStrings[3],
+                fridayHours = dayStrings[4],
+                saturdayHours = dayStrings[5],
+                sundayHours = dayStrings[6],
+            )
+            val row = byMonday[monday]
+            val id = row?.id
+            if (id != null && id > 0) {
+                val r = RetrofitInstance.api.patchMyWeekSchedule("Bearer $token", id, body)
+                if (!r.isSuccessful) {
+                    val err = r.errorBody()?.string()
+                    throw Exception(formatHttpError(r.code(), err))
+                }
+            } else {
+                val r = RetrofitInstance.api.createMyWeekSchedule("Bearer $token", body)
+                if (!r.isSuccessful) {
+                    val err = r.errorBody()?.string()
+                    throw Exception(formatHttpError(r.code(), err))
+                }
+            }
+        }
     }
 
     /** Public master card — GET /api/masters/{id}/ (no auth). */
