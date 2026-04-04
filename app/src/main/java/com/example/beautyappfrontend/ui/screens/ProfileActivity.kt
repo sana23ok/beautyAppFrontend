@@ -29,6 +29,8 @@ import com.example.beautyappfrontend.databinding.DialogUserProfileEditBinding
 import com.example.beautyappfrontend.domain.model.MasterProfileDraft
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterServiceItem
+import com.example.beautyappfrontend.domain.model.MasterServiceRequest
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
@@ -750,6 +752,7 @@ class ProfileActivity : AppCompatActivity() {
             saturdayHours = dialogBinding.etSaturdayHours.text.toString().trim(),
             sundayHours = dialogBinding.etSundayHours.text.toString().trim(),
             scheduleWeeks = base.scheduleWeeks,
+            services = base.services,
         )
     }
 
@@ -784,6 +787,13 @@ class ProfileActivity : AppCompatActivity() {
                     )
                 }
             },
+            services = services.map { row ->
+                MasterServiceRequest(
+                    name = row.name,
+                    price = row.price,
+                    durationMinutes = row.durationMinutes,
+                )
+            },
         )
     }
 
@@ -812,6 +822,13 @@ class ProfileActivity : AppCompatActivity() {
             saturdayHours = saturdayHours,
             sundayHours = sundayHours,
             scheduleWeeks = session.getMasterDraft().scheduleWeeks,
+            services = services.orEmpty().map { s ->
+                MasterServiceItem(
+                    name = s.name,
+                    price = kotlin.math.round(s.price).toInt().coerceAtLeast(0),
+                    durationMinutes = s.durationMinutes,
+                )
+            },
         )
     }
 

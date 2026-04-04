@@ -9,12 +9,14 @@ import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.MasterProfileDraft
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
+import com.example.beautyappfrontend.domain.model.MasterServiceItem
 
 class SessionManager(context: Context) {
 
     private val prefs = context.getSharedPreferences("beauty_app_auth", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val scheduleWeeksType = object : TypeToken<List<List<List<Int>>>>() {}.type
+    private val masterServicesType = object : TypeToken<List<MasterServiceItem>>() {}.type
 
     // ── Token ─────────────────────────────────────────────────────────────────
 
@@ -147,6 +149,7 @@ class SessionManager(context: Context) {
             .putString(KEY_MASTER_SATURDAY_HOURS, draft.saturdayHours)
             .putString(KEY_MASTER_SUNDAY_HOURS, draft.sundayHours)
             .putString(KEY_MASTER_SCHEDULE_WEEKS_JSON, scheduleWeeksToJson(draft.scheduleWeeks))
+            .putString(KEY_MASTER_SERVICES_JSON, gson.toJson(draft.services))
             .apply()
     }
 
@@ -182,6 +185,7 @@ class SessionManager(context: Context) {
             saturdayHours = prefs.getString(KEY_MASTER_SATURDAY_HOURS, "") ?: "",
             sundayHours = prefs.getString(KEY_MASTER_SUNDAY_HOURS, "") ?: "",
             scheduleWeeks = parseScheduleWeeks(prefs.getString(KEY_MASTER_SCHEDULE_WEEKS_JSON, null)),
+            services = parseMasterServices(prefs.getString(KEY_MASTER_SERVICES_JSON, null)),
         )
     }
 
@@ -218,6 +222,15 @@ class SessionManager(context: Context) {
         }
     }
 
+    private fun parseMasterServices(json: String?): List<MasterServiceItem> {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
+            gson.fromJson<List<MasterServiceItem>>(json, masterServicesType) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     companion object {
         private const val TAG            = "SessionManager"
         private const val KEY_TOKEN      = "access_token"
@@ -249,5 +262,6 @@ class SessionManager(context: Context) {
         private const val KEY_MASTER_SATURDAY_HOURS = "master_saturday_hours"
         private const val KEY_MASTER_SUNDAY_HOURS = "master_sunday_hours"
         private const val KEY_MASTER_SCHEDULE_WEEKS_JSON = "master_schedule_weeks_json"
+        private const val KEY_MASTER_SERVICES_JSON = "master_services_json"
     }
 }
