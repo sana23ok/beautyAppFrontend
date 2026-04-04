@@ -61,4 +61,9 @@
     <string name="master_rating_format">★ %1$.1f</string>
     <string name="no_description">No description yet.</string>
     <string name="experience_years_format">%d years</string>
+
+    <!-- Master detail (read-only, visitor view) -->
+    <string name="master_detail_schedule_title">Schedule</string>
+    <string name="master_detail_schedule_hint">8:00 – 20:00 · swipe horizontally on narrow screens</string>
+    <string name="master_detail_price_empty">No services listed yet.</string>
 </resources>

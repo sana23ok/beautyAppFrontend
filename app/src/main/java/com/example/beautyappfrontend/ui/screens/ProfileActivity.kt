@@ -789,7 +789,8 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun MasterProfileResponse.toDraft(): MasterProfileDraft {
         val profile = profilePhoto.trim()
-        val filteredUrls = workPhotos.map { it.photoUrl }
+        val photos = workPhotos.orEmpty()
+        val filteredUrls = photos.map { it.photoUrl }
             .filter { it.isNotBlank() && !it.trim().equals(profile, ignoreCase = true) }
         return MasterProfileDraft(
             masterId = id,
@@ -802,7 +803,7 @@ class ProfileActivity : AppCompatActivity() {
             profilePhoto = profilePhoto,
             workPhotoUrls = filteredUrls,
             workPhotoUrl = filteredUrls.firstOrNull() ?: "",
-            workPhotoCaption = workPhotos.firstOrNull()?.caption ?: "",
+            workPhotoCaption = photos.firstOrNull()?.caption ?: "",
             mondayHours = mondayHours,
             tuesdayHours = tuesdayHours,
             wednesdayHours = wednesdayHours,

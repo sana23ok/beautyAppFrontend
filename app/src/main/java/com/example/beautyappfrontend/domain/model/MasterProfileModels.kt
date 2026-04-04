@@ -57,6 +57,18 @@ data class MasterServiceResponse(
     @SerializedName("duration_minutes") val durationMinutes: Int = 0,
 )
 
+data class MasterWeekTimetableResponse(
+    val id: Int? = null,
+    @SerializedName("week_start") val weekStart: String = "",
+    @SerializedName("monday_hours") val mondayHours: String = "",
+    @SerializedName("tuesday_hours") val tuesdayHours: String = "",
+    @SerializedName("wednesday_hours") val wednesdayHours: String = "",
+    @SerializedName("thursday_hours") val thursdayHours: String = "",
+    @SerializedName("friday_hours") val fridayHours: String = "",
+    @SerializedName("saturday_hours") val saturdayHours: String = "",
+    @SerializedName("sunday_hours") val sundayHours: String = "",
+)
+
 data class MasterProfileRequest(
     val name: String,
     val specialization: String,
@@ -94,8 +106,10 @@ data class MasterProfileResponse(
     @SerializedName("friday_hours") val fridayHours: String = "",
     @SerializedName("saturday_hours") val saturdayHours: String = "",
     @SerializedName("sunday_hours") val sundayHours: String = "",
-    @SerializedName("work_photos") val workPhotos: List<MasterWorkPhotoResponse> = emptyList(),
-    val services: List<MasterServiceResponse> = emptyList(),
+    /** Nullable so Gson never leaves a non-null list field as null when a key is absent. */
+    @SerializedName("work_photos") val workPhotos: List<MasterWorkPhotoResponse>? = null,
+    val services: List<MasterServiceResponse>? = null,
+    @SerializedName("week_timetables") val weekTimetables: List<MasterWeekTimetableResponse>? = null,
 )
 
 data class MasterProfileDraft(
