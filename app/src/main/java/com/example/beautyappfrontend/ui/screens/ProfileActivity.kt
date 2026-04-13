@@ -12,11 +12,14 @@ import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.beautyappfrontend.R
@@ -113,6 +116,12 @@ class ProfileActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "ProfileActivity"
     }
+
+    private data class ServiceRowViews(
+        val name: EditText,
+        val minutes: EditText,
+        val price: EditText,
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -254,6 +263,12 @@ class ProfileActivity : AppCompatActivity() {
         binding.btnEditSchedule.setOnClickListener {
             openScheduleEditDialog()
         }
+        binding.btnAddMasterService.setOnClickListener {
+            addServiceRow()
+        }
+        binding.btnSaveMasterPriceList.setOnClickListener {
+            savePriceList()
+        }
     }
 
     private fun setupBottomNav() {
@@ -327,8 +342,155 @@ class ProfileActivity : AppCompatActivity() {
 
         renderAvatar(draft.profilePhoto.ifBlank { session.getAvatarUrl().orEmpty() })
         renderWorkGallery(draft)
+        renderPriceListEditor(draft)
         renderSchedule(draft)
     }
+
+    private fun renderPriceListEditor(draft: MasterProfileDraft) {
+        binding.layoutMasterPriceBlock.visibility = if (draft.masterId != null) View.VISIBLE else View.GONE
+        binding.layoutMasterPriceRows.removeAllViews()
+
+        val rows = draft.services
+            .map { it.copy(name = it.name.trim()) }
+            .filter { it.name.isNotBlank() || it.durationMinutes > 0 || it.price > 0 }
+
+        if (rows.isEmpty()) {
+            addServiceRow()
+            return
+        }
+        rows.forEach { addServiceRow(it) }
+    }
+
+    private fun addServiceRow(initial: MasterServiceItem = MasterServiceItem()) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            setPadding(0, 8.dp(), 0, 4.dp())
+        }
+
+        val etName = EditText(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 44.dp(), 1f)
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_input_field)
+            hint = getString(R.string.master_price_col_service)
+            setText(initial.name)
+            setPadding(12.dp(), 0, 12.dp(), 0)
+            setSingleLine(true)
+        }
+        val etMinutes = EditText(this).apply {
+            layoutParams = LinearLayout.LayoutParams(54.dp(), 44.dp()).apply { marginStart = 6.dp() }
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_input_field)
+            hint = getString(R.string.master_price_hint_minutes)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            if (initial.durationMinutes > 0) setText(initial.durationMinutes.toString())
+            gravity = android.view.Gravity.CENTER
+        }
+        val etPrice = EditText(this).apply {
+            layoutParams = LinearLayout.LayoutParams(78.dp(), 44.dp()).apply { marginStart = 6.dp() }
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_input_field)
+            hint = getString(R.string.master_price_hint_uah)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            if (initial.price > 0) setText(initial.price.toString())
+            gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+            setPadding(10.dp(), 0, 10.dp(), 0)
+        }
+        val btnRemove = ImageButton(this).apply {
+            layoutParams = LinearLayout.LayoutParams(40.dp(), 40.dp()).apply { marginStart = 6.dp() }
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_outlined_peach)
+            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@ProfileActivity, R.color.peach_dark))
+            contentDescription = getString(R.string.master_price_remove_row)
+            setOnClickListener {
+                binding.layoutMasterPriceRows.removeView(row)
+                if (binding.layoutMasterPriceRows.childCount == 0) addServiceRow()
+            }
+        }
+
+        row.addView(etName)
+        row.addView(etMinutes)
+        row.addView(etPrice)
+        row.addView(btnRemove)
+        row.tag = ServiceRowViews(etName, etMinutes, etPrice)
+        binding.layoutMasterPriceRows.addView(row)
+    }
+
+    private fun collectServicesFromRows(): List<MasterServiceItem>? {
+        val out = mutableListOf<MasterServiceItem>()
+        for (i in 0 until binding.layoutMasterPriceRows.childCount) {
+            val row = binding.layoutMasterPriceRows.getChildAt(i)
+            val holder = row.tag as? ServiceRowViews ?: continue
+            val name = holder.name.text.toString().trim()
+            val minutesRaw = holder.minutes.text.toString().trim()
+            val priceRaw = holder.price.text.toString().trim()
+            if (name.isBlank() && minutesRaw.isBlank() && priceRaw.isBlank()) continue
+
+            if (name.isBlank()) {
+                Toast.makeText(this, "Enter service name in row ${i + 1}", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            val minutes = minutesRaw.toIntOrNull()
+            if (minutes == null || minutes < 0) {
+                Toast.makeText(this, "Invalid duration in row ${i + 1}", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            val price = priceRaw.toIntOrNull()
+            if (price == null || price < 0) {
+                Toast.makeText(this, "Invalid price in row ${i + 1}", Toast.LENGTH_SHORT).show()
+                return null
+            }
+            out.add(
+                MasterServiceItem(
+                    name = name,
+                    durationMinutes = minutes,
+                    price = price,
+                ),
+            )
+        }
+        return out
+    }
+
+    private fun savePriceList() {
+        val token = session.getToken()
+        val draft = session.getMasterDraft()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (draft.masterId == null) {
+            Toast.makeText(this, "Create your master profile first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val services = collectServicesFromRows() ?: return
+
+        binding.btnSaveMasterPriceList.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val updatedDraft = draft.copy(services = services)
+                masterRepository.updateMyMasterProfile(token, updatedDraft.toRequestWithScheduleFromGrid())
+                val refreshed = masterRepository.getMyMasterProfile(token)
+                session.saveMasterProfile(refreshed)
+                session.saveMasterDraft(refreshed.toDraft())
+                populateUserData()
+                Toast.makeText(
+                    this@ProfileActivity,
+                    getString(R.string.master_price_saved),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@ProfileActivity,
+                    e.message ?: "Failed to save price list",
+                    Toast.LENGTH_LONG,
+                ).show()
+            } finally {
+                binding.btnSaveMasterPriceList.isEnabled = true
+            }
+        }
+    }
+
+    private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun renderAvatar(profilePhotoUrl: String) {
         if (profilePhotoUrl.isBlank()) {

@@ -2,10 +2,13 @@ package com.example.beautyappfrontend.ui.screens
 
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NavUtils
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.beautyappfrontend.R
@@ -134,25 +137,85 @@ class MasterDetailActivity : AppCompatActivity() {
         )
     }
 
-    /** Always shows the section; empty list → placeholder text. */
+    /** Table-like price list: service | min | UAH. */
     private fun bindPriceSection(m: MasterProfileResponse) {
         val services = m.services.orEmpty().filter { it.name.isNotBlank() || it.price > 0.0 || it.durationMinutes > 0 }
+        binding.layoutPriceRows.removeAllViews()
         if (services.isEmpty()) {
-            binding.tvPriceList.text = getString(R.string.master_detail_price_empty)
+            binding.tvPriceTitle.visibility = View.GONE
+            binding.cardPriceList.visibility = View.GONE
             return
         }
-        binding.tvPriceList.text = services.joinToString("\n") { svc ->
-            val name = svc.name.trim().ifBlank { "—" }
-            val pricePart = when {
-                svc.price <= 0.0 -> "—"
-                svc.price % 1.0 == 0.0 -> "${svc.price.toInt()} ₴"
-                else -> String.format("%s ₴", svc.price)
+        binding.tvPriceTitle.visibility = View.VISIBLE
+        binding.cardPriceList.visibility = View.VISIBLE
+        binding.tvPriceEmpty.visibility = View.GONE
+        services.forEachIndexed { index, svc ->
+            binding.layoutPriceRows.addView(
+                createPriceRow(
+                    service = svc.name.trim().ifBlank { "—" },
+                    minutes = if (svc.durationMinutes > 0) svc.durationMinutes.toString() else "—",
+                    price = when {
+                        svc.price <= 0.0 -> "—"
+                        svc.price % 1.0 == 0.0 -> "${svc.price.toInt()} ₴"
+                        else -> String.format("%.2f ₴", svc.price)
+                    },
+                ),
+            )
+            if (index < services.lastIndex) {
+                binding.layoutPriceRows.addView(
+                    View(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            1.dp(),
+                        ).apply { topMargin = 6.dp() }
+                        setBackgroundResource(R.color.divider_color)
+                    },
+                )
             }
-            val durationPart =
-                if (svc.durationMinutes > 0) " (${svc.durationMinutes} min)" else ""
-            "$name — $pricePart$durationPart"
         }
     }
+
+    private fun createPriceRow(service: String, minutes: String, price: String): View {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = 8.dp() }
+            addView(
+                TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    text = service
+                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                    textSize = 14f
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(52.dp(), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        marginStart = 6.dp()
+                    }
+                    text = minutes
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 14f
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(72.dp(), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        marginStart = 6.dp()
+                    }
+                    text = price
+                    textAlignment = View.TEXT_ALIGNMENT_VIEW_END
+                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                    textSize = 14f
+                },
+            )
+        }
+    }
+
+    private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
 
     companion object {
         const val EXTRA_MASTER_ID = "master_id"

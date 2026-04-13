@@ -48,6 +48,7 @@
     <string name="master_price_add_service">Add service</string>
     <string name="master_price_save">Save price list</string>
     <string name="master_price_remove_row">Remove service</string>
+    <string name="master_price_saved">Price list saved</string>
 
     <string name="master_photos_title">Photos</string>
     <string name="master_photo_slot_desc">Portfolio photo</string>
