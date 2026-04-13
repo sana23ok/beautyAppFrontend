@@ -5,6 +5,9 @@ import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
 import com.example.beautyappfrontend.domain.model.AuthUserInfo
+import com.example.beautyappfrontend.domain.model.AvailableSlotsResponse
+import com.example.beautyappfrontend.domain.model.BookingRequest
+import com.example.beautyappfrontend.domain.model.BookingResponse
 import com.example.beautyappfrontend.domain.model.ConversationDetailResponse
 import com.example.beautyappfrontend.domain.model.ConversationResponse
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
@@ -33,6 +36,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface BeautyApi {
 
@@ -118,6 +122,31 @@ interface BeautyApi {
 
     @GET("api/masters/{id}/")
     suspend fun getMasterProfile(@Path("id") id: Int): Response<MasterProfileResponse>
+
+    @GET("api/bookings/available-slots/")
+    suspend fun getAvailableSlots(
+        @Query("master_id") masterId: Int,
+        @Query("service_id") serviceId: Int,
+        @Query("date") date: String,
+    ): Response<AvailableSlotsResponse>
+
+    @GET("api/bookings/master/{id}/")
+    suspend fun getMasterBookings(
+        @Path("id") masterId: Int,
+        @Query("from") from: String,
+        @Query("to") to: String,
+    ): Response<List<BookingResponse>>
+
+    @GET("api/bookings/my/")
+    suspend fun getMyBookings(
+        @Header("Authorization") authHeader: String,
+    ): Response<List<BookingResponse>>
+
+    @POST("api/bookings/")
+    suspend fun createBooking(
+        @Header("Authorization") authHeader: String,
+        @Body request: BookingRequest,
+    ): Response<BookingResponse>
 
     @POST("api/appearance_test/analyse/")
     suspend fun submitAppearanceTest(@Body request: AppearanceTestRequest): Response<AppearanceTestResponse>

@@ -24,11 +24,13 @@ import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.AuthRepository
+import com.example.beautyappfrontend.data.repository.BookingRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityProfileBinding
 import com.example.beautyappfrontend.databinding.DialogMasterProfileEditBinding
 import com.example.beautyappfrontend.databinding.DialogMasterScheduleEditBinding
 import com.example.beautyappfrontend.databinding.DialogUserProfileEditBinding
+import com.example.beautyappfrontend.domain.model.BookingResponse
 import com.example.beautyappfrontend.domain.model.MasterProfileDraft
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
@@ -48,18 +50,23 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class ProfileActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProfileBinding
     private lateinit var session: SessionManager
     private val authRepository = AuthRepository()
+    private val bookingRepository = BookingRepository()
     private val masterRepository = MasterRepository()
 
     private var pendingAvatarEditText: EditText? = null
 
     /** 0 = current week … 3 = fourth week ahead (4 weeks total). */
     private var scheduleWeekOffset: Int = 0
+    private var clientBookings: List<BookingResponse> = emptyList()
+    private var masterBookings: List<BookingResponse> = emptyList()
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -181,15 +188,20 @@ class ProfileActivity : AppCompatActivity() {
                 session.saveIsMaster(user.isMaster == true)
 
                 if (user.isMaster == true) {
+                    clientBookings = emptyList()
                     try {
                         val master = masterRepository.getMyMasterProfile(token)
                         session.saveMasterProfile(master)
                         session.saveMasterDraft(master.toDraft())
+                        masterBookings = loadMasterBookingsRange(master.id)
                     } catch (e: Exception) {
                         if (!isNotFoundError(e)) {
                             throw e
                         }
                     }
+                } else {
+                    masterBookings = emptyList()
+                    clientBookings = runCatching { bookingRepository.getMyBookings(token) }.getOrDefault(emptyList())
                 }
 
                 populateUserData()
@@ -313,6 +325,33 @@ class ProfileActivity : AppCompatActivity() {
         binding.tvMasterHelper.visibility = View.GONE
         binding.btnSaveMasterProfile.visibility = View.GONE
         renderAvatar(avatarUrl)
+        renderClientAppointments(clientBookings)
+    }
+
+    private fun renderClientAppointments(bookings: List<BookingResponse>) {
+        val upcoming = bookings.sortedWith(
+            compareBy<BookingResponse> { it.appointmentDate }
+                .thenBy { it.startTime }
+        ).take(3)
+
+        val cards = listOf(binding.appointment1, binding.appointment2, binding.appointment3)
+        cards.forEachIndexed { index, card ->
+            val booking = upcoming.getOrNull(index)
+            if (booking == null) {
+                card.tvAppointmentDate.text = getString(R.string.appointments_empty)
+                card.tvAppointmentSubtitle.text = ""
+                card.root.alpha = 0.6f
+                return@forEachIndexed
+            }
+
+            val location = listOf(booking.masterCity, booking.masterAddress)
+                .filter { it.isNotBlank() }
+                .joinToString(", ")
+                .ifBlank { "—" }
+            card.tvAppointmentDate.text = "${booking.appointmentDate.toDisplayDate()} · ${booking.startTime.shortTime()}-${booking.endTime.shortTime()}"
+            card.tvAppointmentSubtitle.text = "${booking.serviceName} · ${booking.masterName} · $location"
+            card.root.alpha = 1f
+        }
     }
 
     private fun renderMasterProfile(
@@ -603,11 +642,37 @@ class ProfileActivity : AppCompatActivity() {
         binding.btnSchedulePrev.alpha = if (scheduleWeekOffset > 0) 1f else 0.35f
         binding.btnScheduleNext.isEnabled = scheduleWeekOffset < 3
         binding.btnScheduleNext.alpha = if (scheduleWeekOffset < 3) 1f else 0.35f
+        val overlays = MasterScheduleUi.buildOverlays(
+            masterBookings, scheduleWeekOffset, session.getUserId(),
+        )
         MasterScheduleUi.populateGrid(
             binding.layoutScheduleGrid,
             scheduleWeekOffset,
             normalizeScheduleWeeks(draft.scheduleWeeks),
+            overlays = overlays,
         )
+    }
+
+    private suspend fun loadMasterBookingsRange(masterId: Int): List<BookingResponse> {
+        return runCatching {
+            val cal = java.util.Calendar.getInstance()
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            cal.set(java.util.Calendar.MINUTE, 0)
+            cal.set(java.util.Calendar.SECOND, 0)
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            val dow = when (cal.get(java.util.Calendar.DAY_OF_WEEK)) {
+                java.util.Calendar.MONDAY -> 0; java.util.Calendar.TUESDAY -> 1
+                java.util.Calendar.WEDNESDAY -> 2; java.util.Calendar.THURSDAY -> 3
+                java.util.Calendar.FRIDAY -> 4; java.util.Calendar.SATURDAY -> 5
+                java.util.Calendar.SUNDAY -> 6; else -> 0
+            }
+            cal.add(java.util.Calendar.DAY_OF_MONTH, -dow)
+            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val from = fmt.format(cal.time)
+            cal.add(java.util.Calendar.DAY_OF_MONTH, MasterScheduleData.WEEK_COUNT * 7 - 1)
+            val to = fmt.format(cal.time)
+            bookingRepository.getMasterBookings(masterId, from, to)
+        }.getOrDefault(emptyList())
     }
 
     private fun openScheduleEditDialog() {
@@ -1039,6 +1104,17 @@ class ProfileActivity : AppCompatActivity() {
         val lastName = parts.drop(1).joinToString(" ")
         return firstName to lastName
     }
+
+    private fun String.toDisplayDate(): String {
+        return try {
+            val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(this)
+            SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(parsed!!)
+        } catch (_: Exception) {
+            this
+        }
+    }
+
+    private fun String.shortTime(): String = take(5)
 
     private fun isNotFoundError(error: Exception): Boolean {
         return error.message?.contains("HTTP 404") == true

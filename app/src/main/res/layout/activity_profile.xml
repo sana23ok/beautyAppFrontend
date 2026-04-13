@@ -619,11 +619,10 @@
                             android:fillViewport="true"
                             android:scrollbars="horizontal">
 
-                            <LinearLayout
+                            <FrameLayout
                                 android:id="@+id/layout_schedule_grid"
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical" />
+                                android:layout_height="wrap_content" />
                         </HorizontalScrollView>
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>

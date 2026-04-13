@@ -68,4 +68,17 @@
     <string name="master_detail_schedule_title">Schedule</string>
     <string name="master_detail_schedule_hint">8:00 – 20:00 · swipe horizontally on narrow screens</string>
     <string name="master_detail_price_empty">No services listed yet.</string>
+    <string name="booking_dialog_title">Book appointment</string>
+    <string name="booking_service_label">Service</string>
+    <string name="booking_time_label">Start time</string>
+    <string name="booking_select_service_first">Choose a service to see available times.</string>
+    <string name="booking_no_slots">No available times for this day.</string>
+    <string name="booking_notes_hint">Notes for the master (optional)</string>
+    <string name="booking_day_closed">The master is not working on this day.</string>
+    <string name="booking_login_required">Please sign in to book an appointment.</string>
+    <string name="booking_services_missing">This master has no bookable services yet.</string>
+    <string name="booking_select_time">Choose a time slot.</string>
+    <string name="booking_success">Appointment created successfully.</string>
+    <string name="booking_time_option">%1$s (%2$d min)</string>
+    <string name="appointments_empty">No planned appointments yet.</string>
 </resources>

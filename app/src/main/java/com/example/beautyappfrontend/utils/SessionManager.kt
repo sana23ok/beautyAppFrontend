@@ -83,6 +83,8 @@ class SessionManager(context: Context) {
         }
     }
 
+    fun getUserId(): Int = prefs.getInt(KEY_USER_ID, -1)
+
     fun getUsername(): String = prefs.getString(KEY_USERNAME, "") ?: ""
 
     fun getEmail(): String = prefs.getString(KEY_EMAIL, "") ?: ""

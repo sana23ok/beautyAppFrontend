@@ -38,4 +38,10 @@
     <color name="schedule_grid_stroke">#E3DAB7</color>
     <color name="schedule_hatch_base">#E0E0E0</color>
     <color name="schedule_hatch_line">#9E9E9E</color>
+
+    <!-- Booking overlay on schedule grid -->
+    <color name="booking_overlay_others">#99FF1493</color>
+    <color name="booking_overlay_own">#9990EE90</color>
+    <color name="booking_overlay_others_text">#FFFFFF</color>
+    <color name="booking_overlay_own_text">#1B5E20</color>
 </resources>
