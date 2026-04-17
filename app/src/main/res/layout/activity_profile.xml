@@ -657,28 +657,24 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <include
-                    android:id="@+id/appointment_1"
-                    layout="@layout/item_appointment"
-                    android:layout_marginTop="8dp" />
-
-                <View
+                <LinearLayout
+                    android:id="@+id/layout_appointments_list"
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider_color" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
 
-                <include
-                    android:id="@+id/appointment_2"
-                    layout="@layout/item_appointment" />
-
-                <View
+                <TextView
+                    android:id="@+id/tv_appointments_empty"
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider_color" />
-
-                <include
-                    android:id="@+id/appointment_3"
-                    layout="@layout/item_appointment" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:text="@string/appointments_empty"
+                    android:textColor="@color/text_hint"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <Button

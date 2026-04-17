@@ -201,6 +201,10 @@ class MasterDetailActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.booking_login_required, Toast.LENGTH_SHORT).show()
             return
         }
+        if (isOwnMasterProfile(master)) {
+            Toast.makeText(this, "You cannot book your own master profile", Toast.LENGTH_SHORT).show()
+            return
+        }
         val workingHours = cachedScheduleWeeks.getOrNull(scheduleWeekOffset)?.getOrNull(dayIndex).orEmpty()
         if (workingHours.isEmpty()) {
             Toast.makeText(this, R.string.booking_day_closed, Toast.LENGTH_SHORT).show()
@@ -449,6 +453,12 @@ class MasterDetailActivity : AppCompatActivity() {
                 },
             )
         }
+    }
+
+    private fun isOwnMasterProfile(master: MasterProfileResponse): Boolean {
+        if (!session.isMaster()) return false
+        val ownId = session.getMasterDraft().masterId ?: return false
+        return ownId == master.id
     }
 
     private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()

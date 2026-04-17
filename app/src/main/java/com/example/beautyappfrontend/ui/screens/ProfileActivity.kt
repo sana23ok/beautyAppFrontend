@@ -27,6 +27,7 @@ import com.example.beautyappfrontend.data.repository.AuthRepository
 import com.example.beautyappfrontend.data.repository.BookingRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityProfileBinding
+import com.example.beautyappfrontend.databinding.ItemAppointmentBinding
 import com.example.beautyappfrontend.databinding.DialogMasterProfileEditBinding
 import com.example.beautyappfrontend.databinding.DialogMasterScheduleEditBinding
 import com.example.beautyappfrontend.databinding.DialogUserProfileEditBinding
@@ -122,6 +123,7 @@ class ProfileActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "ProfileActivity"
+        private const val APPOINTMENTS_PER_MONTH_LIMIT = 20
     }
 
     private data class ServiceRowViews(
@@ -163,7 +165,7 @@ class ProfileActivity : AppCompatActivity() {
 
         binding.tvRole.text = if (isMaster) "Master" else "Client"
         binding.layoutMasterSection.visibility = if (isMaster) View.VISIBLE else View.GONE
-        binding.layoutAppointmentsSection.visibility = if (isMaster) View.GONE else View.VISIBLE
+        binding.layoutAppointmentsSection.visibility = View.VISIBLE
         binding.btnMessage.visibility = if (isMaster) View.VISIBLE else View.GONE
 
         if (isMaster) {
@@ -187,8 +189,9 @@ class ProfileActivity : AppCompatActivity() {
                 session.saveUserInfo(user)
                 session.saveIsMaster(user.isMaster == true)
 
+                clientBookings = runCatching { bookingRepository.getMyBookings(token) }.getOrDefault(emptyList())
+
                 if (user.isMaster == true) {
-                    clientBookings = emptyList()
                     try {
                         val master = masterRepository.getMyMasterProfile(token)
                         session.saveMasterProfile(master)
@@ -201,7 +204,6 @@ class ProfileActivity : AppCompatActivity() {
                     }
                 } else {
                     masterBookings = emptyList()
-                    clientBookings = runCatching { bookingRepository.getMyBookings(token) }.getOrDefault(emptyList())
                 }
 
                 populateUserData()
@@ -245,15 +247,6 @@ class ProfileActivity : AppCompatActivity() {
         }
         binding.btnSaveMasterProfile.setOnClickListener {
             openMasterEditDialog()
-        }
-        binding.appointment1.root.setOnClickListener {
-            Toast.makeText(this, "Appointment details coming soon", Toast.LENGTH_SHORT).show()
-        }
-        binding.appointment2.root.setOnClickListener {
-            Toast.makeText(this, "Appointment details coming soon", Toast.LENGTH_SHORT).show()
-        }
-        binding.appointment3.root.setOnClickListener {
-            Toast.makeText(this, "Appointment details coming soon", Toast.LENGTH_SHORT).show()
         }
         binding.frameWorkAdd.setOnClickListener {
             if (session.isMaster()) {
@@ -329,29 +322,84 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun renderClientAppointments(bookings: List<BookingResponse>) {
-        val upcoming = bookings.sortedWith(
-            compareBy<BookingResponse> { it.appointmentDate }
-                .thenBy { it.startTime }
-        ).take(3)
+        val container = binding.layoutAppointmentsList
+        container.removeAllViews()
 
-        val cards = listOf(binding.appointment1, binding.appointment2, binding.appointment3)
-        cards.forEachIndexed { index, card ->
-            val booking = upcoming.getOrNull(index)
-            if (booking == null) {
-                card.tvAppointmentDate.text = getString(R.string.appointments_empty)
-                card.tvAppointmentSubtitle.text = ""
-                card.root.alpha = 0.6f
-                return@forEachIndexed
+        val visible = filterVisibleAppointments(bookings)
+
+        if (visible.isEmpty()) {
+            container.visibility = View.GONE
+            binding.tvAppointmentsEmpty.visibility = View.VISIBLE
+            return
+        }
+
+        binding.tvAppointmentsEmpty.visibility = View.GONE
+        container.visibility = View.VISIBLE
+
+        visible.forEachIndexed { index, booking ->
+            if (index > 0) {
+                container.addView(
+                    View(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            1,
+                        )
+                        setBackgroundResource(R.color.divider_color)
+                    },
+                )
             }
 
+            val row = ItemAppointmentBinding.inflate(layoutInflater, container, false)
             val location = listOf(booking.masterCity, booking.masterAddress)
                 .filter { it.isNotBlank() }
                 .joinToString(", ")
                 .ifBlank { "—" }
-            card.tvAppointmentDate.text = "${booking.appointmentDate.toDisplayDate()} · ${booking.startTime.shortTime()}-${booking.endTime.shortTime()}"
-            card.tvAppointmentSubtitle.text = "${booking.serviceName} · ${booking.masterName} · $location"
-            card.root.alpha = 1f
+            row.tvAppointmentDate.text =
+                "${booking.appointmentDate.toDisplayDate()} · ${booking.startTime.shortTime()}-${booking.endTime.shortTime()}"
+            row.tvAppointmentSubtitle.text =
+                "${booking.serviceName} · ${booking.masterName} · $location"
+            row.root.alpha = 1f
+            row.root.isClickable = true
+            row.root.setOnClickListener { openMasterDetail(booking.master) }
+            container.addView(row.root)
         }
+    }
+
+    /**
+     * Returns upcoming appointments sorted ascending, capped at 20 per calendar month
+     * (grouped by YYYY-MM). Past appointments are filtered out.
+     */
+    private fun filterVisibleAppointments(bookings: List<BookingResponse>): List<BookingResponse> {
+        val todayKey = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date())
+        val sorted = bookings
+            .asSequence()
+            .filter { it.appointmentDate.isNotBlank() }
+            .filter { it.appointmentDate >= todayKey }
+            .sortedWith(
+                compareBy<BookingResponse> { it.appointmentDate }.thenBy { it.startTime }
+            )
+            .toList()
+
+        val perMonth = mutableMapOf<String, Int>()
+        val result = mutableListOf<BookingResponse>()
+        for (booking in sorted) {
+            val monthKey = booking.appointmentDate.take(7) // YYYY-MM
+            val count = perMonth.getOrDefault(monthKey, 0)
+            if (count >= APPOINTMENTS_PER_MONTH_LIMIT) continue
+            perMonth[monthKey] = count + 1
+            result.add(booking)
+        }
+        return result
+    }
+
+    private fun openMasterDetail(masterId: Int) {
+        if (masterId <= 0) {
+            Toast.makeText(this, "Master profile is not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(this, MasterDetailActivity::class.java)
+            .putExtra(MasterDetailActivity.EXTRA_MASTER_ID, masterId)
+        startActivity(intent)
     }
 
     private fun renderMasterProfile(
@@ -383,6 +431,7 @@ class ProfileActivity : AppCompatActivity() {
         renderWorkGallery(draft)
         renderPriceListEditor(draft)
         renderSchedule(draft)
+        renderClientAppointments(clientBookings)
     }
 
     private fun renderPriceListEditor(draft: MasterProfileDraft) {
