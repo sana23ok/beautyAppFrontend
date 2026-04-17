@@ -1,9 +1,13 @@
 package com.example.beautyappfrontend.ui.screens
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
+import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.TextView
@@ -139,9 +143,70 @@ class MasterDetailActivity : AppCompatActivity() {
         }
 
         bindPriceSection(m)
+        bindWorkPhotosSection(m)
         cachedScheduleWeeks = MasterProfileSchedule.buildScheduleWeeks(m)
         scheduleWeekOffset = 0
         renderScheduleWeek()
+    }
+
+    private fun bindWorkPhotosSection(m: MasterProfileResponse) {
+        val photos = m.workPhotos.orEmpty().filter { it.photoUrl.isNotBlank() }
+        val grid = binding.layoutWorkPhotosGrid
+        grid.removeAllViews()
+
+        if (photos.isEmpty()) {
+            binding.tvWorkPhotosTitle.visibility = View.GONE
+            grid.visibility = View.GONE
+            return
+        }
+
+        binding.tvWorkPhotosTitle.visibility = View.VISIBLE
+        grid.visibility = View.VISIBLE
+
+        val urls = photos.map { it.photoUrl }
+        val ids = photos.map { it.id ?: 0 }
+
+        photos.forEachIndexed { index, photo ->
+            val frame = FrameLayout(this).apply {
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0
+                    height = 104.dp()
+                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f)
+                    setMargins(3.dp(), 3.dp(), 3.dp(), 3.dp())
+                }
+                background = ContextCompat.getDrawable(this@MasterDetailActivity, R.drawable.bg_photo_grid_cell)
+                isClickable = true
+                isFocusable = true
+                foreground = ContextCompat.getDrawable(
+                    this@MasterDetailActivity,
+                    androidx.appcompat.R.drawable.abc_list_selector_holo_light,
+                )
+                setOnClickListener { openGallery(urls, ids, index) }
+            }
+            val image = ImageView(this).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    Gravity.CENTER,
+                )
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                contentDescription = getString(R.string.master_photo_slot_desc)
+                load(photo.photoUrl) { crossfade(true) }
+            }
+            frame.addView(image)
+            grid.addView(frame)
+        }
+    }
+
+    private fun openGallery(urls: List<String>, ids: List<Int>, startIndex: Int) {
+        val intent = PhotoGalleryActivity.newIntent(
+            context = this,
+            urls = urls,
+            ids = ids,
+            startIndex = startIndex,
+            canDelete = false,
+        )
+        startActivity(intent)
     }
 
     private fun renderScheduleWeek() {

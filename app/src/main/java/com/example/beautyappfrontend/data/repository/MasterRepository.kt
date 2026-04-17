@@ -7,10 +7,12 @@ import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
+import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleFormat
 import com.google.gson.Gson
+import okhttp3.MultipartBody
 
 class MasterRepository {
 
@@ -136,6 +138,35 @@ class MasterRepository {
                 }
             }
         }
+    }
+
+    /** GET /api/masters/me/work_photos/ — list portfolio photos. */
+    suspend fun getMyWorkPhotos(token: String): List<MasterWorkPhotoResponse> {
+        val response = RetrofitInstance.api.getMyWorkPhotos("Bearer $token")
+        if (response.isSuccessful) return response.body() ?: emptyList()
+        val errorBody = response.errorBody()?.string()
+        throw Exception(formatHttpError(response.code(), errorBody))
+    }
+
+    /** POST /api/masters/me/work_photos/ — upload one portfolio photo (multipart). */
+    suspend fun uploadMyWorkPhoto(
+        token: String,
+        photo: MultipartBody.Part,
+    ): MasterWorkPhotoResponse {
+        val response = RetrofitInstance.api.uploadMyWorkPhoto("Bearer $token", photo)
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+        val errorBody = response.errorBody()?.string()
+        throw Exception(formatHttpError(response.code(), errorBody))
+    }
+
+    /** DELETE /api/masters/me/work_photos/{id}/ — remove one portfolio photo. */
+    suspend fun deleteMyWorkPhoto(token: String, photoId: Int) {
+        val response = RetrofitInstance.api.deleteMyWorkPhoto("Bearer $token", photoId)
+        if (response.isSuccessful) return
+        val errorBody = response.errorBody()?.string()
+        throw Exception(formatHttpError(response.code(), errorBody))
     }
 
     /** Public master card — GET /api/masters/{id}/ (no auth). */

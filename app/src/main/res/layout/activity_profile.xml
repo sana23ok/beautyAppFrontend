@@ -244,163 +244,23 @@
                     android:textStyle="bold" />
 
                 <GridLayout
+                    android:id="@+id/layout_work_gallery"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:alignmentMode="alignMargins"
                     android:columnCount="3"
-                    android:rowCount="3"
-                    android:useDefaultMargins="true">
+                    android:useDefaultMargins="true" />
 
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_1"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_3"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_4"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_5"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_6"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_7"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell">
-
-                        <ImageView
-                            android:id="@+id/iv_work_8"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/master_photo_slot_desc"
-                            android:scaleType="centerCrop" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:id="@+id/frame_work_add"
-                        android:layout_width="0dp"
-                        android:layout_height="104dp"
-                        android:layout_columnWeight="1"
-                        android:layout_margin="3dp"
-                        android:background="@drawable/bg_photo_grid_cell"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <ImageView
-                            android:id="@+id/iv_work_9_bg"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@null"
-                            android:scaleType="centerCrop" />
-
-                        <ImageView
-                            android:id="@+id/iv_work_9_plus"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:layout_gravity="center"
-                            android:background="@drawable/bg_peach_circle"
-                            android:contentDescription="@string/master_add_photo_desc"
-                            android:padding="10dp"
-                            android:src="@drawable/ic_plus_white" />
-                    </FrameLayout>
-                </GridLayout>
+                <TextView
+                    android:id="@+id/tv_work_gallery_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/master_photos_empty"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
 
                 <!-- Price list — dynamic rows (ProfileActivity); Service | Min | Price (UAH) -->
                 <LinearLayout

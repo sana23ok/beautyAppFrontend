@@ -1,16 +1,17 @@
 package com.example.beautyappfrontend.ui.screens
 
+import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -39,6 +40,7 @@ import com.example.beautyappfrontend.domain.model.MasterServiceItem
 import com.example.beautyappfrontend.domain.model.MasterServiceRequest
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
+import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
@@ -68,6 +70,27 @@ class ProfileActivity : AppCompatActivity() {
     private var scheduleWeekOffset: Int = 0
     private var clientBookings: List<BookingResponse> = emptyList()
     private var masterBookings: List<BookingResponse> = emptyList()
+
+    /** Latest portfolio photos (with backend ids) for the current master. */
+    private var workPhotos: List<MasterWorkPhotoResponse> = emptyList()
+
+    /** Refresh work photos when returning from the fullscreen gallery (a delete may have happened). */
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val changed = result.data?.getBooleanExtra(PhotoGalleryActivity.EXTRA_RESULT_CHANGED, false) == true
+        if (result.resultCode == Activity.RESULT_OK || changed) {
+            syncProfileFromBackend()
+        }
+    }
+
+    /** Dedicated picker for portfolio (work) photos — separate from the avatar picker. */
+    private val pickWorkPhotoLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent(),
+    ) { uri: Uri? ->
+        uri ?: return@registerForActivityResult
+        uploadWorkPhoto(uri)
+    }
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -124,6 +147,9 @@ class ProfileActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "ProfileActivity"
         private const val APPOINTMENTS_PER_MONTH_LIMIT = 20
+
+        /** Must match backend `MAX_WORK_PHOTOS` in masters/views.py. */
+        private const val MAX_WORK_PHOTOS = 50
     }
 
     private data class ServiceRowViews(
@@ -197,6 +223,8 @@ class ProfileActivity : AppCompatActivity() {
                         session.saveMasterProfile(master)
                         session.saveMasterDraft(master.toDraft())
                         masterBookings = loadMasterBookingsRange(master.id)
+                        workPhotos = runCatching { masterRepository.getMyWorkPhotos(token) }
+                            .getOrElse { master.workPhotos.orEmpty() }
                     } catch (e: Exception) {
                         if (!isNotFoundError(e)) {
                             throw e
@@ -204,6 +232,7 @@ class ProfileActivity : AppCompatActivity() {
                     }
                 } else {
                     masterBookings = emptyList()
+                    workPhotos = emptyList()
                 }
 
                 populateUserData()
@@ -247,11 +276,6 @@ class ProfileActivity : AppCompatActivity() {
         }
         binding.btnSaveMasterProfile.setOnClickListener {
             openMasterEditDialog()
-        }
-        binding.frameWorkAdd.setOnClickListener {
-            if (session.isMaster()) {
-                openMasterEditDialog()
-            }
         }
         binding.btnSchedulePrev.setOnClickListener {
             if (scheduleWeekOffset > 0) {
@@ -596,92 +620,207 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun renderWorkGallery(draft: MasterProfileDraft) {
-        val profileUrl = draft.profilePhoto.ifBlank { session.getAvatarUrl().orEmpty() }.trim()
-        val workUrls = draft.workPhotoUrls
-            .map { it.trim() }
-            .filter { it.isNotBlank() && !it.equals(profileUrl, ignoreCase = true) }
-            .distinct()
-            .take(8)
+        val container = binding.layoutWorkGallery
+        container.removeAllViews()
 
-        val padded = workUrls.toMutableList<String?>()
-        while (padded.size < 8) padded.add(null)
+        // Photos we have ids for (from /me/work_photos/); these support deletion.
+        val photos = workPhotos.filter { it.photoUrl.isNotBlank() }
 
-        val cells = listOf(
-            binding.ivWork1,
-            binding.ivWork2,
-            binding.ivWork3,
-            binding.ivWork4,
-            binding.ivWork5,
-            binding.ivWork6,
-            binding.ivWork7,
-            binding.ivWork8,
-        )
-        cells.zip(padded).forEach { (imageView, url) ->
-            bindGalleryCell(imageView, url)
-        }
-
-        // Last tile: blurred background + plus (never uses profile photo).
-        val addTileBg = workUrls.lastOrNull() ?: workUrls.firstOrNull()
-        bindAddPhotoTile(addTileBg)
-    }
-
-    private fun bindGalleryCell(imageView: ImageView, url: String?) {
-        if (url.isNullOrBlank()) {
-            imageView.setImageResource(R.drawable.ic_nav_profile)
-            imageView.imageTintList = ColorStateList.valueOf(
-                ContextCompat.getColor(this, R.color.text_hint)
-            )
-            imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
-            return
-        }
-
-        imageView.imageTintList = null
-        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-        imageView.load(url) {
-            crossfade(true)
-        }
-    }
-
-    private fun bindAddPhotoTile(backgroundUrl: String?) {
-        binding.ivWork9Plus.visibility = View.VISIBLE
-        clearAddTileBlur()
-        if (backgroundUrl.isNullOrBlank()) {
-            binding.ivWork9Bg.setImageDrawable(null)
-            binding.ivWork9Bg.setBackgroundResource(R.drawable.bg_photo_add_empty)
-            binding.ivWork9Bg.alpha = 1f
-            return
-        }
-        binding.ivWork9Bg.background = null
-        binding.ivWork9Bg.alpha = 1f
-        binding.ivWork9Bg.scaleType = ImageView.ScaleType.CENTER_CROP
-        binding.ivWork9Bg.load(backgroundUrl) {
-            crossfade(true)
-            listener(
-                onSuccess = { _, _ -> applyBlurToAddTile() },
-                onError = { _, _ ->
-                    clearAddTileBlur()
-                    binding.ivWork9Bg.setImageDrawable(null)
-                    binding.ivWork9Bg.setBackgroundResource(R.drawable.bg_photo_add_empty)
-                    binding.ivWork9Bg.alpha = 1f
-                },
-            )
-        }
-    }
-
-    private fun clearAddTileBlur() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            binding.ivWork9Bg.setRenderEffect(null)
-        }
-    }
-
-    private fun applyBlurToAddTile() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            binding.ivWork9Bg.setRenderEffect(
-                RenderEffect.createBlurEffect(22f, 22f, Shader.TileMode.CLAMP),
-            )
-            binding.ivWork9Bg.alpha = 1f
+        // Fallback: if the dedicated endpoint hasn't been reached yet, show the URLs
+        // from the master draft so something is visible immediately on first load.
+        val fallback = if (photos.isEmpty()) {
+            draft.workPhotoUrls
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .map { MasterWorkPhotoResponse(id = null, photoUrl = it, caption = "") }
         } else {
-            binding.ivWork9Bg.alpha = 0.72f
+            emptyList()
+        }
+
+        val combined = photos + fallback
+        val canUploadMore = combined.size < MAX_WORK_PHOTOS
+        val canDelete = photos.any { (it.id ?: 0) > 0 }
+
+        binding.tvWorkGalleryEmpty.visibility =
+            if (combined.isEmpty()) View.VISIBLE else View.GONE
+
+        combined.forEachIndexed { index, photo ->
+            container.addView(createWorkPhotoTile(photo, index, combined, canDelete))
+        }
+
+        if (canUploadMore) {
+            container.addView(createAddPhotoTile())
+        }
+    }
+
+    private fun workTileLayoutParams(): GridLayout.LayoutParams {
+        return GridLayout.LayoutParams().apply {
+            width = 0
+            height = 104.dp()
+            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f)
+            setMargins(3.dp(), 3.dp(), 3.dp(), 3.dp())
+        }
+    }
+
+    private fun createWorkPhotoTile(
+        photo: MasterWorkPhotoResponse,
+        index: Int,
+        allPhotos: List<MasterWorkPhotoResponse>,
+        canDelete: Boolean,
+    ): View {
+        val frame = FrameLayout(this).apply {
+            layoutParams = workTileLayoutParams()
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_photo_grid_cell)
+            isClickable = true
+            isFocusable = true
+            foreground = ContextCompat.getDrawable(
+                this@ProfileActivity,
+                androidx.appcompat.R.drawable.abc_list_selector_holo_light,
+            )
+        }
+
+        val image = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = getString(R.string.master_photo_slot_desc)
+            load(photo.photoUrl) { crossfade(true) }
+        }
+        frame.addView(image)
+
+        frame.setOnClickListener { openGalleryAt(allPhotos, index) }
+        frame.setOnLongClickListener {
+            val id = photo.id ?: 0
+            if (canDelete && id > 0) {
+                confirmDeleteWorkPhoto(id)
+            } else {
+                openGalleryAt(allPhotos, index)
+            }
+            true
+        }
+        return frame
+    }
+
+    private fun createAddPhotoTile(): View {
+        val frame = FrameLayout(this).apply {
+            layoutParams = workTileLayoutParams()
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_photo_add_empty)
+            isClickable = true
+            isFocusable = true
+            foreground = ContextCompat.getDrawable(
+                this@ProfileActivity,
+                androidx.appcompat.R.drawable.abc_list_selector_holo_light,
+            )
+            contentDescription = getString(R.string.master_add_photo_desc)
+            setOnClickListener { launchWorkPhotoPicker() }
+        }
+        val plus = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                44.dp(),
+                44.dp(),
+                Gravity.CENTER,
+            )
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_peach_circle)
+            setPadding(10.dp())
+            setImageResource(R.drawable.ic_plus_white)
+            contentDescription = getString(R.string.master_add_photo_desc)
+        }
+        frame.addView(plus)
+        return frame
+    }
+
+    private fun openGalleryAt(photos: List<MasterWorkPhotoResponse>, startIndex: Int) {
+        if (photos.isEmpty()) return
+        val urls = photos.map { it.photoUrl }
+        val ids = photos.map { it.id ?: 0 }
+        val isOwner = session.isMaster() && session.getMasterDraft().masterId != null
+        val intent = PhotoGalleryActivity.newIntent(
+            context = this,
+            urls = urls,
+            ids = ids,
+            startIndex = startIndex,
+            canDelete = isOwner,
+        )
+        galleryLauncher.launch(intent)
+    }
+
+    private fun launchWorkPhotoPicker() {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!session.isMaster() || session.getMasterDraft().masterId == null) {
+            Toast.makeText(this, "Create your master profile first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (workPhotos.size >= MAX_WORK_PHOTOS) {
+            Toast.makeText(this, R.string.master_photos_limit_reached, Toast.LENGTH_LONG).show()
+            return
+        }
+        pickWorkPhotoLauncher.launch("image/*")
+    }
+
+    private fun uploadWorkPhoto(uri: Uri) {
+        val token = session.getToken() ?: return
+        lifecycleScope.launch {
+            try {
+                val mimeType = resolveImageMimeType(uri)
+                val file = copyUriToCacheFile(uri, mimeType)
+                val part = MultipartBody.Part.createFormData(
+                    "photo",
+                    file.name,
+                    file.asRequestBody(mimeType.toMediaTypeOrNull()),
+                )
+                val uploaded = masterRepository.uploadMyWorkPhoto(token, part)
+                workPhotos = listOf(uploaded) + workPhotos
+                populateUserData()
+                Toast.makeText(
+                    this@ProfileActivity,
+                    R.string.master_photo_uploaded,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@ProfileActivity,
+                    e.message ?: getString(R.string.master_photo_upload_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun confirmDeleteWorkPhoto(photoId: Int) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.gallery_delete_title)
+            .setMessage(R.string.gallery_delete_message)
+            .setPositiveButton(R.string.gallery_delete_confirm) { _, _ -> deleteWorkPhoto(photoId) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteWorkPhoto(photoId: Int) {
+        val token = session.getToken() ?: return
+        lifecycleScope.launch {
+            try {
+                masterRepository.deleteMyWorkPhoto(token, photoId)
+                workPhotos = workPhotos.filter { it.id != photoId }
+                populateUserData()
+                Toast.makeText(
+                    this@ProfileActivity,
+                    R.string.master_photo_deleted,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@ProfileActivity,
+                    e.message ?: getString(R.string.load_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
         }
     }
 

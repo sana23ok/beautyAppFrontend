@@ -16,6 +16,7 @@ import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
+import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
 import com.example.beautyappfrontend.domain.model.MessageResponse
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.SendMessageRequest
@@ -112,6 +113,24 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Body request: MasterProfileRequest,
     ): Response<MasterProfileResponse>
+
+    @GET("api/masters/me/work_photos/")
+    suspend fun getMyWorkPhotos(
+        @Header("Authorization") authHeader: String,
+    ): Response<List<MasterWorkPhotoResponse>>
+
+    @Multipart
+    @POST("api/masters/me/work_photos/")
+    suspend fun uploadMyWorkPhoto(
+        @Header("Authorization") authHeader: String,
+        @Part photo: MultipartBody.Part,
+    ): Response<MasterWorkPhotoResponse>
+
+    @DELETE("api/masters/me/work_photos/{id}/")
+    suspend fun deleteMyWorkPhoto(
+        @Header("Authorization") authHeader: String,
+        @Path("id") id: Int,
+    ): Response<Unit>
 
     @GET("api/masters/me/week-schedules/")
     suspend fun getMyWeekSchedules(

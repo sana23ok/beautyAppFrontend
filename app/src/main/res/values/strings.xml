@@ -53,6 +53,20 @@
     <string name="master_photos_title">Photos</string>
     <string name="master_photo_slot_desc">Portfolio photo</string>
     <string name="master_add_photo_desc">Add photo</string>
+    <string name="master_photos_empty">No portfolio photos yet. Add some to showcase your work.</string>
+    <string name="master_photos_limit_reached">You have reached the maximum of 50 portfolio photos.</string>
+    <string name="master_photo_uploaded">Photo added</string>
+    <string name="master_photo_deleted">Photo removed</string>
+    <string name="master_photo_upload_failed">Could not upload photo</string>
+
+    <!-- Fullscreen photo gallery -->
+    <string name="gallery_position_format">%1$d / %2$d</string>
+    <string name="gallery_delete_photo">Delete photo</string>
+    <string name="gallery_delete_title">Delete photo</string>
+    <string name="gallery_delete_message">This photo will be permanently removed from your portfolio. Continue?</string>
+    <string name="gallery_delete_confirm">Delete</string>
+    <string name="gallery_delete_unavailable">This photo cannot be deleted.</string>
+    <string name="gallery_delete_login_required">Please sign in again to delete photos.</string>
 
     <string name="back">Back</string>
     <string name="master_profile_title">Master profile</string>
