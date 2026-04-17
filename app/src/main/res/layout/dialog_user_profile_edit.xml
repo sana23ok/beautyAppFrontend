@@ -32,19 +32,6 @@
         android:textColor="@color/text_primary"
         android:textColorHint="@color/text_hint" />
 
-    <EditText
-        android:id="@+id/et_avatar"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_input_field"
-        android:hint="Avatar URL (or upload photo below)"
-        android:inputType="textUri"
-        android:paddingStart="18dp"
-        android:paddingEnd="18dp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_hint" />
-
     <Button
         android:id="@+id/btn_upload_avatar"
         android:layout_width="match_parent"
@@ -52,6 +39,27 @@
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_button_gradient"
         android:text="Upload photo"
+        android:textColor="@color/white"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btn_switch_to_professional"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_button_gradient"
+        android:text="Switch to professional account"
+        android:textColor="@color/white"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btn_delete_profile"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_button_red"
+        android:text="Delete profile"
+        android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="14sp" />
 

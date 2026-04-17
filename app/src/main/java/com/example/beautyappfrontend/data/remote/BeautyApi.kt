@@ -29,6 +29,7 @@ import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -76,6 +77,16 @@ interface BeautyApi {
     suspend fun updateCurrentUser(
         @Header("Authorization") authHeader: String,
         @Body request: UserProfileUpdateRequest,
+    ): Response<AuthUserInfo>
+
+    @DELETE("api/auth/me/")
+    suspend fun deleteCurrentUser(
+        @Header("Authorization") authHeader: String,
+    ): Response<Unit>
+
+    @POST("api/auth/become_master/")
+    suspend fun becomeMaster(
+        @Header("Authorization") authHeader: String,
     ): Response<AuthUserInfo>
 
     @Multipart

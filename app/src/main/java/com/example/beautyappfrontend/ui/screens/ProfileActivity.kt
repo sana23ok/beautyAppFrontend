@@ -778,10 +778,9 @@ class ProfileActivity : AppCompatActivity() {
         val dialogBinding = DialogUserProfileEditBinding.inflate(layoutInflater)
         dialogBinding.etFullName.setText(session.getDisplayName())
         dialogBinding.etPhone.setText(session.getPhoneNumber())
-        dialogBinding.etAvatar.setText(session.getAvatarUrl().orEmpty())
 
         dialogBinding.btnUploadAvatar.setOnClickListener {
-            pendingAvatarEditText = dialogBinding.etAvatar
+            pendingAvatarEditText = null
             pickImageLauncher.launch("image/*")
         }
 
@@ -792,11 +791,18 @@ class ProfileActivity : AppCompatActivity() {
             .setPositiveButton("Save", null)
             .create()
 
+        dialogBinding.btnSwitchToProfessional.setOnClickListener {
+            confirmSwitchToProfessional(token) { dialog.dismiss() }
+        }
+        dialogBinding.btnDeleteProfile.setOnClickListener {
+            confirmDeleteAccount(token) { dialog.dismiss() }
+        }
+
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val fullName = dialogBinding.etFullName.text.toString().trim()
                 val phone = dialogBinding.etPhone.text.toString().trim()
-                val avatar = dialogBinding.etAvatar.text.toString().trim()
+                val avatar = session.getAvatarUrl().orEmpty()
 
                 if (fullName.isBlank()) {
                     Toast.makeText(this, "Enter your full name", Toast.LENGTH_SHORT).show()
@@ -857,7 +863,7 @@ class ProfileActivity : AppCompatActivity() {
         populateMasterDialogFields(dialogBinding, existingDraft)
 
         dialogBinding.btnUploadProfilePhoto.setOnClickListener {
-            pendingAvatarEditText = dialogBinding.etMasterProfilePhoto
+            pendingAvatarEditText = null
             pickImageLauncher.launch("image/*")
         }
 
@@ -867,6 +873,10 @@ class ProfileActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Save", null)
             .create()
+
+        dialogBinding.btnDeleteMasterProfile.setOnClickListener {
+            confirmDeleteAccount(token) { dialog.dismiss() }
+        }
 
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -936,16 +946,7 @@ class ProfileActivity : AppCompatActivity() {
             if (draft.experienceYears > 0) draft.experienceYears.toString() else ""
         )
         dialogBinding.etMasterDescription.setText(draft.description)
-        dialogBinding.etMasterProfilePhoto.setText(draft.profilePhoto.ifBlank { session.getAvatarUrl().orEmpty() })
-        dialogBinding.etMasterWorkPhoto.setText(draft.workPhotoUrl)
         dialogBinding.etMasterWorkPhotoCaption.setText(draft.workPhotoCaption)
-        dialogBinding.etMondayHours.setText(draft.mondayHours)
-        dialogBinding.etTuesdayHours.setText(draft.tuesdayHours)
-        dialogBinding.etWednesdayHours.setText(draft.wednesdayHours)
-        dialogBinding.etThursdayHours.setText(draft.thursdayHours)
-        dialogBinding.etFridayHours.setText(draft.fridayHours)
-        dialogBinding.etSaturdayHours.setText(draft.saturdayHours)
-        dialogBinding.etSundayHours.setText(draft.sundayHours)
     }
 
     private fun readMasterDraft(
@@ -958,8 +959,9 @@ class ProfileActivity : AppCompatActivity() {
         val address = dialogBinding.etMasterAddress.text.toString().trim()
         val experienceText = dialogBinding.etMasterExperience.text.toString().trim()
         val description = dialogBinding.etMasterDescription.text.toString().trim()
-        val profilePhoto = dialogBinding.etMasterProfilePhoto.text.toString().trim()
-        val workPhotoUrl = dialogBinding.etMasterWorkPhoto.text.toString().trim()
+        val base = session.getMasterDraft()
+        val profilePhoto = session.getAvatarUrl().orEmpty().ifBlank { base.profilePhoto }
+        val workPhotoUrl = base.workPhotoUrl
         val workPhotoCaption = dialogBinding.etMasterWorkPhotoCaption.text.toString().trim()
 
         if (name.isBlank()) {
@@ -981,8 +983,7 @@ class ProfileActivity : AppCompatActivity() {
             return null
         }
 
-        val workPhotoUrls = if (workPhotoUrl.isNotBlank()) listOf(workPhotoUrl) else emptyList()
-        val base = session.getMasterDraft()
+        val workPhotoUrls = if (workPhotoUrl.isNotBlank()) listOf(workPhotoUrl) else base.workPhotoUrls
         return MasterProfileDraft(
             masterId = masterId,
             name = name,
@@ -995,13 +996,13 @@ class ProfileActivity : AppCompatActivity() {
             workPhotoUrls = workPhotoUrls,
             workPhotoUrl = workPhotoUrl,
             workPhotoCaption = workPhotoCaption,
-            mondayHours = dialogBinding.etMondayHours.text.toString().trim(),
-            tuesdayHours = dialogBinding.etTuesdayHours.text.toString().trim(),
-            wednesdayHours = dialogBinding.etWednesdayHours.text.toString().trim(),
-            thursdayHours = dialogBinding.etThursdayHours.text.toString().trim(),
-            fridayHours = dialogBinding.etFridayHours.text.toString().trim(),
-            saturdayHours = dialogBinding.etSaturdayHours.text.toString().trim(),
-            sundayHours = dialogBinding.etSundayHours.text.toString().trim(),
+            mondayHours = base.mondayHours,
+            tuesdayHours = base.tuesdayHours,
+            wednesdayHours = base.wednesdayHours,
+            thursdayHours = base.thursdayHours,
+            fridayHours = base.fridayHours,
+            saturdayHours = base.saturdayHours,
+            sundayHours = base.sundayHours,
             scheduleWeeks = base.scheduleWeeks,
             services = base.services,
         )
@@ -1118,5 +1119,70 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun isNotFoundError(error: Exception): Boolean {
         return error.message?.contains("HTTP 404") == true
+    }
+
+    private fun confirmSwitchToProfessional(token: String, onDone: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle("Switch to professional account")
+            .setMessage(
+                "Your account will be converted to a master (professional) account. " +
+                    "You will be able to create your master profile, set a schedule, and receive bookings. " +
+                    "Continue?"
+            )
+            .setPositiveButton("Switch") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        val user = authRepository.becomeMaster(token)
+                        session.saveUserInfo(user)
+                        session.saveIsMaster(true)
+                        onDone()
+                        Toast.makeText(
+                            this@ProfileActivity,
+                            "You are now a professional. Complete your master profile.",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        populateUserData()
+                        syncProfileFromBackend()
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@ProfileActivity,
+                            e.message ?: "Failed to switch account",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmDeleteAccount(token: String, onDone: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete profile")
+            .setMessage(
+                "Your account and all related data will be permanently deleted. " +
+                    "This action cannot be undone. Continue?"
+            )
+            .setPositiveButton("Delete") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        authRepository.deleteCurrentUser(token)
+                        session.clearSession()
+                        onDone()
+                        val intent = Intent(this@ProfileActivity, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        finish()
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@ProfileActivity,
+                            e.message ?: "Failed to delete profile",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }

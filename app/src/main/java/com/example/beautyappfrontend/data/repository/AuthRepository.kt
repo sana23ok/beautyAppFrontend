@@ -156,6 +156,27 @@ class AuthRepository {
         throw Exception("HTTP ${response.code()}: $errorBody")
     }
 
+    suspend fun deleteCurrentUser(token: String) {
+        val response = RetrofitInstance.api.deleteCurrentUser("Bearer $token")
+        Log.d(TAG, "<<< DELETE ME RESPONSE HTTP ${response.code()}")
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string() ?: "(empty)"
+            Log.e(TAG, "<<< DELETE ME ERROR body: $errorBody")
+            throw Exception("HTTP ${response.code()}: $errorBody")
+        }
+    }
+
+    suspend fun becomeMaster(token: String): AuthUserInfo {
+        val response = RetrofitInstance.api.becomeMaster("Bearer $token")
+        Log.d(TAG, "<<< BECOME MASTER RESPONSE HTTP ${response.code()}")
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+        val errorBody = response.errorBody()?.string() ?: "(empty)"
+        Log.e(TAG, "<<< BECOME MASTER ERROR body: $errorBody")
+        throw Exception("HTTP ${response.code()}: $errorBody")
+    }
+
     suspend fun uploadAvatar(token: String, photoPart: MultipartBody.Part): String {
         val response = RetrofitInstance.api.uploadAvatar("Bearer $token", photoPart)
         if (response.isSuccessful) {

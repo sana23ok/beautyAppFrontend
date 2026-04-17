@@ -90,19 +90,6 @@
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_hint" />
 
-        <EditText
-            android:id="@+id/et_master_profile_photo"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Profile photo URL (or upload below)"
-            android:inputType="textUri"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
         <Button
             android:id="@+id/btn_upload_profile_photo"
             android:layout_width="match_parent"
@@ -113,19 +100,6 @@
             android:text="Upload profile photo"
             android:textColor="@color/white"
             android:textSize="14sp" />
-
-        <EditText
-            android:id="@+id/et_master_work_photo"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Work photo URL"
-            android:inputType="textUri"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
 
         <EditText
             android:id="@+id/et_master_work_photo_caption"
@@ -140,98 +114,16 @@
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_hint" />
 
-        <TextView
+        <Button
+            android:id="@+id/btn_delete_master_profile"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Weekly schedule"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/et_monday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Monday: 09:00 - 18:00"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/et_tuesday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Tuesday: 09:00 - 18:00"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/et_wednesday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Wednesday: 09:00 - 18:00"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/et_thursday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Thursday: 09:00 - 18:00"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/et_friday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Friday: 09:00 - 18:00"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/et_saturday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Saturday: 10:00 - 16:00"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
-
-        <EditText
-            android:id="@+id/et_sunday_hours"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="Sunday: Closed"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint" />
+            android:layout_height="48dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_button_red"
+            android:text="Delete profile"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
 
     </LinearLayout>
 </ScrollView>
