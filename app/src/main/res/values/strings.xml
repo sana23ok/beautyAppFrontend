@@ -55,6 +55,7 @@
     <string name="master_add_photo_desc">Add photo</string>
     <string name="master_photos_empty">No portfolio photos yet. Add some to showcase your work.</string>
     <string name="master_photos_limit_reached">You have reached the maximum of 50 portfolio photos.</string>
+    <string name="master_photos_see_more">See more</string>
     <string name="master_photo_uploaded">Photo added</string>
     <string name="master_photo_deleted">Photo removed</string>
     <string name="master_photo_upload_failed">Could not upload photo</string>
@@ -82,6 +83,11 @@
     <string name="master_detail_schedule_title">Schedule</string>
     <string name="master_detail_schedule_hint">8:00 – 20:00 · swipe horizontally on narrow screens</string>
     <string name="master_detail_price_empty">No services listed yet.</string>
+    <string name="master_detail_message">Message</string>
+    <string name="master_detail_message_login_required">Please log in to send messages</string>
+    <string name="master_detail_message_unavailable">Cannot message this master</string>
+    <string name="master_detail_message_starting">Starting conversation…</string>
+    <string name="master_detail_message_failed">Failed to start conversation</string>
     <string name="booking_dialog_title">Book appointment</string>
     <string name="booking_service_label">Service</string>
     <string name="booking_time_label">Start time</string>

@@ -1,5 +1,9 @@
 package com.example.beautyappfrontend.ui.screens
 
+import android.content.Intent
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -21,6 +25,7 @@ import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.BookingRepository
+import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityMasterDetailBinding
 import com.example.beautyappfrontend.databinding.DialogBookingAppointmentBinding
@@ -44,6 +49,7 @@ class MasterDetailActivity : AppCompatActivity() {
     private lateinit var session: SessionManager
     private val repository = MasterRepository()
     private val bookingRepository = BookingRepository()
+    private val chatRepository = ChatRepository()
 
     private var currentMaster: MasterProfileResponse? = null
     private var cachedScheduleWeeks: List<List<List<Int>>> = MasterScheduleData.empty()
@@ -144,6 +150,7 @@ class MasterDetailActivity : AppCompatActivity() {
 
         bindPriceSection(m)
         bindWorkPhotosSection(m)
+        bindMessageButton(m)
         cachedScheduleWeeks = MasterProfileSchedule.buildScheduleWeeks(m)
         scheduleWeekOffset = 0
         renderScheduleWeek()
@@ -166,35 +173,189 @@ class MasterDetailActivity : AppCompatActivity() {
         val urls = photos.map { it.photoUrl }
         val ids = photos.map { it.id ?: 0 }
 
-        photos.forEachIndexed { index, photo ->
-            val frame = FrameLayout(this).apply {
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0
-                    height = 104.dp()
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f)
-                    setMargins(3.dp(), 3.dp(), 3.dp(), 3.dp())
+        val overflow = photos.size > MAX_GRID_TILES
+        // When there are more than 9 photos, slot 9 becomes a blurred "see more" tile
+        // that opens the fullscreen gallery at that 9th photo (index MAX_GRID_TILES - 1).
+        val normalTileCount =
+            if (overflow) MAX_GRID_TILES - 1 else photos.size.coerceAtMost(MAX_GRID_TILES)
+
+        for (i in 0 until normalTileCount) {
+            grid.addView(createPhotoTile(photos[i].photoUrl, i, urls, ids))
+        }
+
+        if (overflow) {
+            val overflowPhotoUrl = photos[MAX_GRID_TILES - 1].photoUrl
+            grid.addView(
+                createSeeMoreTile(
+                    photoUrl = overflowPhotoUrl,
+                    startIndex = MAX_GRID_TILES - 1,
+                    urls = urls,
+                    ids = ids,
+                ),
+            )
+        }
+    }
+
+    private fun bindMessageButton(m: MasterProfileResponse) {
+        // Hide the button on the user's own master profile – no self-messaging.
+        val isOwn = isOwnMasterProfile(m)
+        val hasParticipant = (m.userId ?: 0) > 0
+        if (isOwn || !hasParticipant) {
+            binding.btnMessage.visibility = View.GONE
+            binding.btnMessage.setOnClickListener(null)
+            return
+        }
+        binding.btnMessage.visibility = View.VISIBLE
+        binding.btnMessage.setOnClickListener { startConversationWith(m) }
+    }
+
+    private fun startConversationWith(m: MasterProfileResponse) {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, R.string.master_detail_message_login_required, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val participantUserId = m.userId
+        if (participantUserId == null || participantUserId <= 0) {
+            Toast.makeText(this, R.string.master_detail_message_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        binding.btnMessage.isEnabled = false
+        Toast.makeText(this, R.string.master_detail_message_starting, Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                val conversation = chatRepository.startConversation(
+                    token = token,
+                    participantId = participantUserId,
+                )
+                val intent = Intent(this@MasterDetailActivity, ChatConversationActivity::class.java).apply {
+                    putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, conversation.id)
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_NAME,
+                        conversation.participant?.displayName ?: m.name,
+                    )
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR,
+                        conversation.participant?.avatar ?: m.profilePhoto,
+                    )
+                    putExtra(
+                        ChatConversationActivity.EXTRA_IS_ONLINE,
+                        conversation.participant?.isOnline ?: false,
+                    )
                 }
-                background = ContextCompat.getDrawable(this@MasterDetailActivity, R.drawable.bg_photo_grid_cell)
-                isClickable = true
-                isFocusable = true
-                foreground = ContextCompat.getDrawable(
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(
                     this@MasterDetailActivity,
-                    androidx.appcompat.R.drawable.abc_list_selector_holo_light,
-                )
-                setOnClickListener { openGallery(urls, ids, index) }
+                    e.message ?: getString(R.string.master_detail_message_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            } finally {
+                binding.btnMessage.isEnabled = true
             }
-            val image = ImageView(this).apply {
-                layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    Gravity.CENTER,
-                )
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                contentDescription = getString(R.string.master_photo_slot_desc)
-                load(photo.photoUrl) { crossfade(true) }
+        }
+    }
+
+    private fun photoTileLayoutParams(): GridLayout.LayoutParams {
+        return GridLayout.LayoutParams().apply {
+            width = 0
+            height = 104.dp()
+            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f)
+            setMargins(3.dp(), 3.dp(), 3.dp(), 3.dp())
+        }
+    }
+
+    private fun createPhotoTile(
+        photoUrl: String,
+        index: Int,
+        urls: List<String>,
+        ids: List<Int>,
+    ): View {
+        val frame = FrameLayout(this).apply {
+            layoutParams = photoTileLayoutParams()
+            background = ContextCompat.getDrawable(this@MasterDetailActivity, R.drawable.bg_photo_grid_cell)
+            isClickable = true
+            isFocusable = true
+            foreground = ContextCompat.getDrawable(
+                this@MasterDetailActivity,
+                androidx.appcompat.R.drawable.abc_list_selector_holo_light,
+            )
+            setOnClickListener { openGallery(urls, ids, index) }
+        }
+        val image = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER,
+            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = getString(R.string.master_photo_slot_desc)
+            load(photoUrl) { crossfade(true) }
+        }
+        frame.addView(image)
+        return frame
+    }
+
+    /** Slot 9 when the master has more than 9 photos — blurred overflow photo
+     *  with a "See more" pill; tapping opens the gallery at that photo. */
+    private fun createSeeMoreTile(
+        photoUrl: String,
+        startIndex: Int,
+        urls: List<String>,
+        ids: List<Int>,
+    ): View {
+        val frame = FrameLayout(this).apply {
+            layoutParams = photoTileLayoutParams()
+            background = ContextCompat.getDrawable(this@MasterDetailActivity, R.drawable.bg_photo_grid_cell)
+            isClickable = true
+            isFocusable = true
+            foreground = ContextCompat.getDrawable(
+                this@MasterDetailActivity,
+                androidx.appcompat.R.drawable.abc_list_selector_holo_light,
+            )
+            contentDescription = getString(R.string.master_photos_see_more)
+            setOnClickListener { openGallery(urls, ids, startIndex) }
+        }
+
+        val bg = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = null
+            load(photoUrl) {
+                crossfade(true)
+                listener(onSuccess = { _, _ -> applyTileBlur(this@apply) })
             }
-            frame.addView(image)
-            grid.addView(frame)
+        }
+        frame.addView(bg)
+
+        val label = TextView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            )
+            text = getString(R.string.master_photos_see_more)
+            setTextColor(ContextCompat.getColor(this@MasterDetailActivity, android.R.color.white))
+            textSize = 13f
+            background = ContextCompat.getDrawable(this@MasterDetailActivity, R.drawable.bg_see_more_pill)
+            setPadding(14.dp(), 6.dp(), 14.dp(), 6.dp())
+        }
+        frame.addView(label)
+
+        return frame
+    }
+
+    private fun applyTileBlur(view: View) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            view.setRenderEffect(
+                RenderEffect.createBlurEffect(22f, 22f, Shader.TileMode.CLAMP),
+            )
+        } else {
+            view.alpha = 0.55f
         }
     }
 
@@ -530,5 +691,8 @@ class MasterDetailActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_MASTER_ID = "master_id"
+
+        /** Portfolio grid on the master detail page is capped at a 3×3 (9-tile) layout. */
+        private const val MAX_GRID_TILES = 9
     }
 }

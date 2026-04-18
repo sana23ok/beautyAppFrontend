@@ -4,7 +4,10 @@ import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -150,6 +153,9 @@ class ProfileActivity : AppCompatActivity() {
 
         /** Must match backend `MAX_WORK_PHOTOS` in masters/views.py. */
         private const val MAX_WORK_PHOTOS = 50
+
+        /** Portfolio grid always displays at most this many tiles (3×3). */
+        private const val MAX_GRID_TILES = 9
     }
 
     private data class ServiceRowViews(
@@ -192,7 +198,6 @@ class ProfileActivity : AppCompatActivity() {
         binding.tvRole.text = if (isMaster) "Master" else "Client"
         binding.layoutMasterSection.visibility = if (isMaster) View.VISIBLE else View.GONE
         binding.layoutAppointmentsSection.visibility = View.VISIBLE
-        binding.btnMessage.visibility = if (isMaster) View.VISIBLE else View.GONE
 
         if (isMaster) {
             renderMasterProfile(
@@ -257,9 +262,6 @@ class ProfileActivity : AppCompatActivity() {
             } else {
                 openUserEditDialog()
             }
-        }
-        binding.btnMessage.setOnClickListener {
-            Toast.makeText(this, "Messaging feature coming soon", Toast.LENGTH_SHORT).show()
         }
         binding.btnLogout.setOnClickListener {
             AlertDialog.Builder(this)
@@ -639,17 +641,34 @@ class ProfileActivity : AppCompatActivity() {
         }
 
         val combined = photos + fallback
-        val canUploadMore = combined.size < MAX_WORK_PHOTOS
+        val canUploadMore = photos.size < MAX_WORK_PHOTOS
         val canDelete = photos.any { (it.id ?: 0) > 0 }
 
         binding.tvWorkGalleryEmpty.visibility =
             if (combined.isEmpty()) View.VISIBLE else View.GONE
 
-        combined.forEachIndexed { index, photo ->
-            container.addView(createWorkPhotoTile(photo, index, combined, canDelete))
+        // Grid is capped at MAX_GRID_TILES (9). Slot 9 is reserved for the "+" tile
+        // so the master can always add more: either a plain add tile (few photos)
+        // or a blurred-overlay add tile when the portfolio already has 9+ photos.
+        val overflow = combined.size >= MAX_GRID_TILES
+        val normalTileCount = if (overflow) MAX_GRID_TILES - 1 else combined.size
+
+        for (i in 0 until normalTileCount) {
+            container.addView(createWorkPhotoTile(combined[i], i, combined, canDelete))
         }
 
-        if (canUploadMore) {
+        if (overflow) {
+            val overflowPhotoUrl = combined.getOrNull(MAX_GRID_TILES - 1)?.photoUrl.orEmpty()
+            if (canUploadMore) {
+                container.addView(createBlurredAddTile(overflowPhotoUrl))
+            } else {
+                // Portfolio already at the backend cap (50). Just show the 9th photo
+                // as a normal tile — master can still open the gallery to see/delete more.
+                container.addView(
+                    createWorkPhotoTile(combined[MAX_GRID_TILES - 1], MAX_GRID_TILES - 1, combined, canDelete),
+                )
+            }
+        } else if (canUploadMore) {
             container.addView(createAddPhotoTile())
         }
     }
@@ -730,6 +749,66 @@ class ProfileActivity : AppCompatActivity() {
         }
         frame.addView(plus)
         return frame
+    }
+
+    /** Tile that shows a blurred photo as background with a centered "+" — used when
+     *  the portfolio already has 9+ photos, so slot 9 doubles as the add button. */
+    private fun createBlurredAddTile(photoUrl: String): View {
+        val frame = FrameLayout(this).apply {
+            layoutParams = workTileLayoutParams()
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_photo_grid_cell)
+            isClickable = true
+            isFocusable = true
+            foreground = ContextCompat.getDrawable(
+                this@ProfileActivity,
+                androidx.appcompat.R.drawable.abc_list_selector_holo_light,
+            )
+            contentDescription = getString(R.string.master_add_photo_desc)
+            setOnClickListener { launchWorkPhotoPicker() }
+        }
+
+        val bg = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = null
+            if (photoUrl.isNotBlank()) {
+                load(photoUrl) {
+                    crossfade(true)
+                    listener(onSuccess = { _, _ -> applyTileBlur(this@apply) })
+                }
+            } else {
+                setBackgroundResource(R.drawable.bg_photo_add_empty)
+            }
+        }
+        frame.addView(bg)
+
+        val plus = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                44.dp(),
+                44.dp(),
+                Gravity.CENTER,
+            )
+            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_peach_circle)
+            setPadding(10.dp())
+            setImageResource(R.drawable.ic_plus_white)
+            contentDescription = getString(R.string.master_add_photo_desc)
+        }
+        frame.addView(plus)
+        return frame
+    }
+
+    /** Device-level blur on API 31+; falls back to reduced alpha on older devices. */
+    private fun applyTileBlur(view: View) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            view.setRenderEffect(
+                RenderEffect.createBlurEffect(22f, 22f, Shader.TileMode.CLAMP),
+            )
+        } else {
+            view.alpha = 0.55f
+        }
     }
 
     private fun openGalleryAt(photos: List<MasterWorkPhotoResponse>, startIndex: Int) {
