@@ -8,6 +8,7 @@ import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.AvailableSlotsResponse
 import com.example.beautyappfrontend.domain.model.BookingRequest
 import com.example.beautyappfrontend.domain.model.BookingResponse
+import com.example.beautyappfrontend.domain.model.CancelBookingRequest
 import com.example.beautyappfrontend.domain.model.ConversationDetailResponse
 import com.example.beautyappfrontend.domain.model.ConversationResponse
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
@@ -176,6 +177,13 @@ interface BeautyApi {
     suspend fun createBooking(
         @Header("Authorization") authHeader: String,
         @Body request: BookingRequest,
+    ): Response<BookingResponse>
+
+    @POST("api/bookings/{id}/cancel/")
+    suspend fun cancelBooking(
+        @Header("Authorization") authHeader: String,
+        @Path("id") bookingId: Int,
+        @Body request: CancelBookingRequest,
     ): Response<BookingResponse>
 
     @POST("api/appearance_test/analyse/")

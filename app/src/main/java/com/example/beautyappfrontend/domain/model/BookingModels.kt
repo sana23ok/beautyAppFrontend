@@ -20,6 +20,9 @@ data class BookingRequest(
 data class BookingResponse(
     val id: Int,
     val client: Int = -1,
+    @SerializedName("client_name") val clientName: String = "",
+    @SerializedName("client_avatar") val clientAvatar: String = "",
+    @SerializedName("client_phone") val clientPhone: String = "",
     val master: Int,
     @SerializedName("master_name") val masterName: String = "",
     @SerializedName("master_city") val masterCity: String = "",
@@ -33,4 +36,8 @@ data class BookingResponse(
     val status: String = "",
     val notes: String = "",
     @SerializedName("created_at") val createdAt: String = "",
+)
+
+data class CancelBookingRequest(
+    val reason: String = "",
 )

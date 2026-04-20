@@ -29,8 +29,11 @@ import coil.load
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.AuthRepository
 import com.example.beautyappfrontend.data.repository.BookingRepository
+import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityProfileBinding
+import com.example.beautyappfrontend.databinding.DialogBookingCancelReasonBinding
+import com.example.beautyappfrontend.databinding.DialogBookingInfoBinding
 import com.example.beautyappfrontend.databinding.ItemAppointmentBinding
 import com.example.beautyappfrontend.databinding.DialogMasterProfileEditBinding
 import com.example.beautyappfrontend.databinding.DialogMasterScheduleEditBinding
@@ -66,6 +69,7 @@ class ProfileActivity : AppCompatActivity() {
     private val authRepository = AuthRepository()
     private val bookingRepository = BookingRepository()
     private val masterRepository = MasterRepository()
+    private val chatRepository = ChatRepository()
 
     private var pendingAvatarEditText: EditText? = null
 
@@ -800,11 +804,14 @@ class ProfileActivity : AppCompatActivity() {
         return frame
     }
 
-    /** Device-level blur on API 31+; falls back to reduced alpha on older devices. */
+    /** Device-level blur on API 31+; falls back to reduced alpha on older devices.
+     *  Radius 12f produces a visually similar result to 22f on a ~100dp tile while
+     *  costing noticeably less GPU/CPU time (blur work scales with radius²), which
+     *  matters on the emulator where RenderEffect may fall back to software paths. */
     private fun applyTileBlur(view: View) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             view.setRenderEffect(
-                RenderEffect.createBlurEffect(22f, 22f, Shader.TileMode.CLAMP),
+                RenderEffect.createBlurEffect(12f, 12f, Shader.TileMode.CLAMP),
             )
         } else {
             view.alpha = 0.55f
@@ -917,7 +924,162 @@ class ProfileActivity : AppCompatActivity() {
             scheduleWeekOffset,
             normalizeScheduleWeeks(draft.scheduleWeeks),
             overlays = overlays,
+            onBookingClick = { bookingId -> openBookingInfoDialog(bookingId) },
         )
+    }
+
+    private fun openBookingInfoDialog(bookingId: Int) {
+        val booking = masterBookings.firstOrNull { it.id == bookingId } ?: return
+        val bindingDialog = DialogBookingInfoBinding.inflate(layoutInflater)
+
+        val clientName = booking.clientName.ifBlank { "Client" }
+        bindingDialog.tvBookingClientName.text = clientName
+        if (booking.clientPhone.isNotBlank()) {
+            bindingDialog.tvBookingClientPhone.visibility = View.VISIBLE
+            bindingDialog.tvBookingClientPhone.text = booking.clientPhone
+        } else {
+            bindingDialog.tvBookingClientPhone.visibility = View.GONE
+        }
+        if (booking.clientAvatar.isNotBlank()) {
+            bindingDialog.ivBookingClientAvatar.imageTintList = null
+            bindingDialog.ivBookingClientAvatar.load(booking.clientAvatar) {
+                crossfade(true)
+                placeholder(R.drawable.ic_nav_profile)
+                error(R.drawable.ic_nav_profile)
+            }
+        } else {
+            bindingDialog.ivBookingClientAvatar.imageTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.text_hint),
+            )
+            bindingDialog.ivBookingClientAvatar.setImageResource(R.drawable.ic_nav_profile)
+        }
+
+        val duration = booking.serviceDurationMinutes.coerceAtLeast(0)
+        bindingDialog.tvBookingInfoService.text = getString(
+            R.string.booking_info_service_format,
+            booking.serviceName.ifBlank { "—" },
+            duration,
+        )
+        bindingDialog.tvBookingInfoWhen.text = getString(
+            R.string.booking_info_when_format,
+            booking.appointmentDate.toDisplayDate(),
+            booking.startTime.shortTime(),
+            booking.endTime.shortTime(),
+        )
+        bindingDialog.tvBookingInfoStatus.text = getString(
+            R.string.booking_info_status_format,
+            booking.status.ifBlank { "—" },
+        )
+        if (booking.notes.isNotBlank()) {
+            bindingDialog.tvBookingInfoNotesLabel.visibility = View.VISIBLE
+            bindingDialog.tvBookingInfoNotes.visibility = View.VISIBLE
+            bindingDialog.tvBookingInfoNotes.text = booking.notes
+        } else {
+            bindingDialog.tvBookingInfoNotesLabel.visibility = View.GONE
+            bindingDialog.tvBookingInfoNotes.visibility = View.GONE
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.booking_info_title)
+            .setView(bindingDialog.root)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        bindingDialog.btnBookingInfoMessage.setOnClickListener {
+            dialog.dismiss()
+            openChatWithClient(booking)
+        }
+        bindingDialog.btnBookingInfoCancel.setOnClickListener {
+            dialog.dismiss()
+            openCancelReasonDialog(booking)
+        }
+        dialog.show()
+    }
+
+    private fun openChatWithClient(booking: BookingResponse) {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val clientUserId = booking.client
+        if (clientUserId <= 0) {
+            Toast.makeText(this, R.string.master_detail_message_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                val conversation = chatRepository.startConversation(token, clientUserId)
+                val intent = Intent(this@ProfileActivity, ChatConversationActivity::class.java).apply {
+                    putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, conversation.id)
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_NAME,
+                        conversation.participant?.displayName ?: booking.clientName,
+                    )
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR,
+                        conversation.participant?.avatar ?: booking.clientAvatar,
+                    )
+                    putExtra(
+                        ChatConversationActivity.EXTRA_IS_ONLINE,
+                        conversation.participant?.isOnline ?: false,
+                    )
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@ProfileActivity,
+                    e.message ?: getString(R.string.master_detail_message_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun openCancelReasonDialog(booking: BookingResponse) {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, "Please sign in again", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val bind = DialogBookingCancelReasonBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.booking_cancel_title)
+            .setView(bind.root)
+            .setNegativeButton(R.string.booking_cancel_keep, null)
+            .setPositiveButton(R.string.booking_cancel_confirm, null)
+            .create()
+
+        dialog.setOnShowListener {
+            val btn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            btn.setOnClickListener {
+                val reason = bind.etBookingCancelReason.text.toString().trim()
+                btn.isEnabled = false
+                lifecycleScope.launch {
+                    try {
+                        bookingRepository.cancelBooking(token, booking.id, reason)
+                        val draft = session.getMasterDraft()
+                        draft.masterId?.let { masterBookings = loadMasterBookingsRange(it) }
+                        populateUserData()
+                        dialog.dismiss()
+                        Toast.makeText(
+                            this@ProfileActivity,
+                            R.string.booking_cancel_success,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@ProfileActivity,
+                            e.message ?: getString(R.string.load_failed),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    } finally {
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
+                    }
+                }
+            }
+        }
+        dialog.show()
     }
 
     private suspend fun loadMasterBookingsRange(masterId: Int): List<BookingResponse> {

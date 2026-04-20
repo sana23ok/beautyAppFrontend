@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
+import java.util.WeakHashMap
 
 object MasterScheduleUi {
 
@@ -31,6 +32,7 @@ object MasterScheduleUi {
     enum class Slot { FREE, BOOKED, CLOSED }
 
     data class BookingOverlay(
+        val bookingId: Int,
         val dayIndex: Int,
         val startHour: Int,
         val startMinute: Int,
@@ -43,6 +45,30 @@ object MasterScheduleUi {
     private val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     private val weekRangeFormat = SimpleDateFormat("d MMM", Locale.getDefault())
     private val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+
+    /**
+     * Cached hatched bitmaps for CLOSED cells. The pattern only depends on cell
+     * size and colors, so generating it once per unique combination and reusing
+     * the bitmap across all closed cells (and across renders) avoids dozens of
+     * ARGB_8888 allocations per schedule rebuild.
+     */
+    private data class HatchKey(val w: Int, val h: Int, val baseColor: Int, val lineColor: Int)
+    private val hatchCache = HashMap<HatchKey, Bitmap>()
+
+    /**
+     * Signature of the last successful [populateGrid] render per container.
+     * Used to skip full view-tree rebuilds when nothing visible changed
+     * (e.g. after a photo upload that triggers populateUserData()).
+     * WeakHashMap keys prevent leaking containers when activities are destroyed.
+     */
+    private data class BuildSignature(
+        val weekOffset: Int,
+        val schedule: List<List<List<Int>>>,
+        val booked: List<List<List<Int>>>,
+        val overlays: List<BookingOverlay>,
+        val width: Int,
+    )
+    private val lastBuild = WeakHashMap<FrameLayout, BuildSignature>()
 
     fun weekRangeLabel(weekOffset: Int): String {
         val tz = TimeZone.getDefault()
@@ -104,6 +130,7 @@ object MasterScheduleUi {
             val end = parseTimeHM(booking.endTime) ?: continue
 
             overlays += BookingOverlay(
+                bookingId = booking.id,
                 dayIndex = diffDays,
                 startHour = start.first,
                 startMinute = start.second,
@@ -123,8 +150,30 @@ object MasterScheduleUi {
         bookedWeeks: List<List<List<Int>>> = MasterScheduleData.empty(),
         onDayClick: ((dayIndex: Int) -> Unit)? = null,
         overlays: List<BookingOverlay> = emptyList(),
+        onBookingClick: ((bookingId: Int) -> Unit)? = null,
     ) {
         val context = container.context
+
+        // Skip full rebuild when nothing visible has changed for this container.
+        // Click lambdas read live state (e.g. `masterBookings`) at click time, so
+        // keeping the previously attached listeners is safe.
+        val currentWidth = container.width
+        if (currentWidth > 0) {
+            val signature = BuildSignature(
+                weekOffset = weekOffset,
+                schedule = scheduleWeeks,
+                booked = bookedWeeks,
+                overlays = overlays,
+                width = currentWidth,
+            )
+            if (lastBuild[container] == signature && container.childCount > 0) {
+                return
+            }
+            lastBuild[container] = signature
+        } else {
+            lastBuild.remove(container)
+        }
+
         container.removeAllViews()
 
         val gridLayout = LinearLayout(context).apply {
@@ -135,6 +184,14 @@ object MasterScheduleUi {
             )
         }
         container.addView(gridLayout)
+
+        // Precompute per-day working-hours / booked sets once per render.
+        // `slotState` is otherwise called 12×7=84 times, each doing two nested
+        // `getOrNull` list lookups — a noticeable overhead on low-end devices.
+        val weekSchedule = scheduleWeeks.getOrNull(weekOffset).orEmpty()
+        val weekBooked = bookedWeeks.getOrNull(weekOffset).orEmpty()
+        val daySchedule = Array(7) { weekSchedule.getOrNull(it).orEmpty().toHashSet() }
+        val dayBooked = Array(7) { weekBooked.getOrNull(it).orEmpty().toHashSet() }
 
         fun buildAtWidth(widthPx: Int) {
             if (widthPx <= 0) return
@@ -173,7 +230,7 @@ object MasterScheduleUi {
             }
             for (dayIndex in 0..6) {
                 val cw = dayCellWidth(dayIndex)
-                val dayHasWorkingHours = scheduleWeeks.getOrNull(weekOffset)?.getOrNull(dayIndex).orEmpty().isNotEmpty()
+                val dayHasWorkingHours = daySchedule[dayIndex].isNotEmpty()
                 dayHeader.addView(
                     TextView(context).apply {
                         text = dayLabels[dayIndex]
@@ -214,7 +271,11 @@ object MasterScheduleUi {
                     },
                 )
                 for (dayIndex in 0..6) {
-                    val slot = slotState(dayIndex, hour, weekOffset, scheduleWeeks, bookedWeeks)
+                    val slot = when {
+                        hour in dayBooked[dayIndex] -> Slot.BOOKED
+                        hour in daySchedule[dayIndex] -> Slot.FREE
+                        else -> Slot.CLOSED
+                    }
                     val freeBg = if (dayIndex % 2 == 0) {
                         R.drawable.bg_schedule_slot_free
                     } else {
@@ -266,30 +327,34 @@ object MasterScheduleUi {
                     addBookingOverlays(
                         container, gridLayout, overlays,
                         labelColW, ::dayCellWidth, rowMinH,
+                        onBookingClick,
                     )
                 }
             }
         }
 
-        fun scheduleBuild() {
-            val w = container.width
-            if (w > 0) {
-                buildAtWidth(w)
-                return
-            }
+        if (currentWidth > 0) {
+            buildAtWidth(currentWidth)
+        } else {
             val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     val width = container.width
                     if (width > 0) {
                         container.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        // Refresh the stored signature now that we finally know the width.
+                        lastBuild[container] = BuildSignature(
+                            weekOffset = weekOffset,
+                            schedule = scheduleWeeks,
+                            booked = bookedWeeks,
+                            overlays = overlays,
+                            width = width,
+                        )
                         buildAtWidth(width)
                     }
                 }
             }
             container.viewTreeObserver.addOnGlobalLayoutListener(listener)
         }
-
-        container.post { scheduleBuild() }
     }
 
     private fun addBookingOverlays(
@@ -299,6 +364,7 @@ object MasterScheduleUi {
         labelColW: Int,
         dayCellWidth: (Int) -> Int,
         rowMinH: Int,
+        onBookingClick: ((bookingId: Int) -> Unit)?,
     ) {
         val context = container.context
         val dm = context.resources.displayMetrics.density
@@ -380,8 +446,14 @@ object MasterScheduleUi {
                     leftMargin = dayX + inset
                     topMargin = topY
                 }
-                isClickable = false
-                isFocusable = false
+                if (onBookingClick != null) {
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener { onBookingClick(overlay.bookingId) }
+                } else {
+                    isClickable = false
+                    isFocusable = false
+                }
             }
             container.addView(tv)
         }
@@ -407,21 +479,27 @@ object MasterScheduleUi {
         val d = context.resources.displayMetrics.density
         val w = widthPx.coerceAtLeast((40 * d).toInt().coerceAtLeast(32))
         val h = heightPx.coerceAtLeast((44 * d).toInt().coerceAtLeast(32))
-        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
         val base = ContextCompat.getColor(context, R.color.schedule_hatch_base)
         val line = ContextCompat.getColor(context, R.color.schedule_hatch_line)
-        canvas.drawColor(base)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = line
-            strokeWidth = dp(1f, d)
-            style = Paint.Style.STROKE
+        val key = HatchKey(w, h, base, line)
+        val bitmap = hatchCache[key] ?: run {
+            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmp)
+            canvas.drawColor(base)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = line
+                strokeWidth = dp(1f, d)
+                style = Paint.Style.STROKE
+            }
+            var x = -h.toFloat()
+            while (x < w + h) {
+                canvas.drawLine(x, 0f, x + h, h.toFloat(), paint)
+                x += dp(5f, d)
+            }
+            hatchCache[key] = bmp
+            bmp
         }
-        var x = -h.toFloat()
-        while (x < w + h) {
-            canvas.drawLine(x, 0f, x + h, h.toFloat(), paint)
-            x += dp(5f, d)
-        }
+        // Wrap the cached bitmap in a fresh Drawable so per-view bounds don't interfere.
         return BitmapDrawable(context.resources, bitmap)
     }
 

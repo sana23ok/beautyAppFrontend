@@ -4,6 +4,7 @@ import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.domain.model.AvailableSlotsResponse
 import com.example.beautyappfrontend.domain.model.BookingRequest
 import com.example.beautyappfrontend.domain.model.BookingResponse
+import com.example.beautyappfrontend.domain.model.CancelBookingRequest
 
 class BookingRepository {
     suspend fun getAvailableSlots(masterId: Int, serviceId: Int, date: String): AvailableSlotsResponse {
@@ -36,5 +37,17 @@ class BookingRepository {
             return response.body() ?: emptyList()
         }
         throw Exception(response.errorBody()?.string() ?: "Failed to load your appointments")
+    }
+
+    suspend fun cancelBooking(token: String, bookingId: Int, reason: String): BookingResponse {
+        val response = RetrofitInstance.api.cancelBooking(
+            "Bearer $token",
+            bookingId,
+            CancelBookingRequest(reason = reason),
+        )
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+        throw Exception(response.errorBody()?.string() ?: "Failed to cancel booking")
     }
 }

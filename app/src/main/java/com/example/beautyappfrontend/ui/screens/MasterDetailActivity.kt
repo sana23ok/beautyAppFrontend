@@ -40,6 +40,7 @@ import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -431,6 +432,11 @@ class MasterDetailActivity : AppCompatActivity() {
             Toast.makeText(this, "You cannot book your own master profile", Toast.LENGTH_SHORT).show()
             return
         }
+        val bookingDate = dateKeyForDay(scheduleWeekOffset, dayIndex)
+        if (isDateBeforeToday(bookingDate)) {
+            Toast.makeText(this, R.string.booking_time_in_past, Toast.LENGTH_SHORT).show()
+            return
+        }
         val workingHours = cachedScheduleWeeks.getOrNull(scheduleWeekOffset)?.getOrNull(dayIndex).orEmpty()
         if (workingHours.isEmpty()) {
             Toast.makeText(this, R.string.booking_day_closed, Toast.LENGTH_SHORT).show()
@@ -444,7 +450,6 @@ class MasterDetailActivity : AppCompatActivity() {
         }
 
         val bindingDialog = DialogBookingAppointmentBinding.inflate(layoutInflater)
-        val bookingDate = dateKeyForDay(scheduleWeekOffset, dayIndex)
         bindingDialog.tvBookingDate.text = bookingDate.toDisplayDate()
 
         val serviceLabels = services.map { "${it.name} · ${it.durationMinutes} min · ${formatPrice(it.price)}" }
@@ -461,12 +466,25 @@ class MasterDetailActivity : AppCompatActivity() {
                 if (slots.isEmpty()) getString(R.string.booking_no_slots) else getString(R.string.booking_time_label)
 
             slots.forEach { slot ->
+                val slotIsPast = isDateTimeBeforeNow(bookingDate, slot)
                 bindingDialog.groupBookingTimes.addView(
                     RadioButton(this).apply {
                         text = getString(R.string.booking_time_option, slot, service.durationMinutes)
                         setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                        setOnCheckedChangeListener { _, isChecked ->
-                            if (isChecked) selectedTime = slot
+                        if (slotIsPast) alpha = 0.5f
+                        setOnCheckedChangeListener { buttonView, isChecked ->
+                            if (!isChecked) return@setOnCheckedChangeListener
+                            if (slotIsPast) {
+                                selectedTime = null
+                                Toast.makeText(
+                                    this@MasterDetailActivity,
+                                    R.string.booking_time_in_past,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                buttonView.post { bindingDialog.groupBookingTimes.clearCheck() }
+                            } else {
+                                selectedTime = slot
+                            }
                         }
                     },
                 )
@@ -635,6 +653,32 @@ class MasterDetailActivity : AppCompatActivity() {
             else -> null
         }
     }.getOrNull()
+
+    private fun todayMidnight(): Calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+
+    private fun isDateBeforeToday(dateKey: String): Boolean {
+        val date = parseDate(dateKey) ?: return false
+        return date.before(todayMidnight().time)
+    }
+
+    private fun isDateTimeBeforeNow(dateKey: String, timeKey: String): Boolean {
+        val date = parseDate(dateKey) ?: return false
+        val time = parseTime(timeKey) ?: return false
+        val timeCal = Calendar.getInstance(TimeZone.getDefault()).apply { this.time = time }
+        val slotCal = Calendar.getInstance(TimeZone.getDefault()).apply {
+            this.time = date
+            set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY))
+            set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE))
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return slotCal.time.before(Date())
+    }
 
     private fun formatPrice(price: Double): String {
         return if (price % 1.0 == 0.0) "${price.toInt()} ₴" else String.format("%.2f ₴", price)
