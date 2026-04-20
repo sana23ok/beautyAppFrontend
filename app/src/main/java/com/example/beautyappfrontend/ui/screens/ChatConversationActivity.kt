@@ -46,7 +46,7 @@ class ChatConversationActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "ChatConversation"
-        private const val REFRESH_INTERVAL_MS = 3000L
+        private const val REFRESH_INTERVAL_MS = 6000L
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_PARTICIPANT_NAME = "participant_name"
         const val EXTRA_PARTICIPANT_AVATAR = "participant_avatar"
@@ -90,28 +90,33 @@ class ChatConversationActivity : AppCompatActivity() {
     }
 
     private fun refreshMessages() {
-        if (isRefreshing) return
+        if (!canRefresh()) return
+        val token = session.getToken() ?: run { isRefreshing = false; return }
         isRefreshing = true
-
-        val token = session.getToken()
-        if (token.isNullOrBlank() || conversationId == 0) {
-            isRefreshing = false
-            return
-        }
 
         lifecycleScope.launch {
             try {
                 val messages = chatRepository.getMessages(token, conversationId)
-                val currentCount = adapter.itemCount
-                adapter.updateData(messages)
-                if (messages.size > currentCount) {
-                    binding.rvMessages.scrollToPosition(messages.size - 1)
-                }
+                applyRefreshedMessages(messages)
             } catch (e: Exception) {
                 Log.e(TAG, "Error refreshing messages", e)
             } finally {
                 isRefreshing = false
             }
+        }
+    }
+
+    private fun canRefresh(): Boolean {
+        if (isRefreshing) return false
+        val token = session.getToken()
+        return !token.isNullOrBlank() && conversationId != 0
+    }
+
+    private fun applyRefreshedMessages(messages: List<ChatMessage>) {
+        val currentCount = adapter.itemCount
+        adapter.updateData(messages)
+        if (messages.size > currentCount) {
+            binding.rvMessages.scrollToPosition(messages.size - 1)
         }
     }
 
@@ -123,12 +128,20 @@ class ChatConversationActivity : AppCompatActivity() {
     }
 
     private fun setupHeader() {
+        renderHeaderText()
+        renderHeaderAvatar()
+        setupHeaderButtons()
+    }
+
+    private fun renderHeaderText() {
         binding.tvName.text = participantName
         binding.tvStatus.text = if (isOnline) "Online" else "Offline"
         binding.tvStatus.setTextColor(
             getColor(if (isOnline) R.color.green_primary else R.color.guava_sage)
         )
+    }
 
+    private fun renderHeaderAvatar() {
         if (participantAvatar.isNotBlank()) {
             binding.ivAvatar.imageTintList = null
             binding.ivAvatar.load(participantAvatar) {
@@ -148,7 +161,9 @@ class ChatConversationActivity : AppCompatActivity() {
                 ContextCompat.getColor(this, R.color.white),
             )
         }
+    }
 
+    private fun setupHeaderButtons() {
         binding.btnBack.setOnClickListener { finish() }
         binding.btnMore.setOnClickListener {
             Toast.makeText(this, "More options", Toast.LENGTH_SHORT).show()

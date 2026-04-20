@@ -4,10 +4,7 @@ import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -54,6 +51,9 @@ import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleFormat
 import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -220,35 +220,76 @@ class ProfileActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val user = authRepository.getCurrentUser(token)
-                session.saveUserInfo(user)
-                session.saveIsMaster(user.isMaster == true)
-
-                clientBookings = runCatching { bookingRepository.getMyBookings(token) }.getOrDefault(emptyList())
-
-                if (user.isMaster == true) {
-                    try {
-                        val master = masterRepository.getMyMasterProfile(token)
-                        session.saveMasterProfile(master)
-                        session.saveMasterDraft(master.toDraft())
-                        masterBookings = loadMasterBookingsRange(master.id)
-                        workPhotos = runCatching { masterRepository.getMyWorkPhotos(token) }
-                            .getOrElse { master.workPhotos.orEmpty() }
-                    } catch (e: Exception) {
-                        if (!isNotFoundError(e)) {
-                            throw e
-                        }
-                    }
-                } else {
-                    masterBookings = emptyList()
-                    workPhotos = emptyList()
-                }
-
+                val user = fetchAndPersistUser(token)
+                syncRoleSpecificData(token, user.isMaster == true)
                 populateUserData()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to sync profile", e)
             }
         }
+    }
+
+    private suspend fun fetchAndPersistUser(
+        token: String,
+    ): com.example.beautyappfrontend.domain.model.AuthUserInfo {
+        val user = authRepository.getCurrentUser(token)
+        session.saveUserInfo(user)
+        session.saveIsMaster(user.isMaster == true)
+        return user
+    }
+
+    private suspend fun syncRoleSpecificData(token: String, isMaster: Boolean) {
+        if (isMaster) {
+            syncMasterData(token)
+        } else {
+            syncClientData(token)
+        }
+    }
+
+    /** Client: client bookings are the only data to load. */
+    private suspend fun syncClientData(token: String) = coroutineScope {
+        val bookingsDeferred = async { runCatching { bookingRepository.getMyBookings(token) }.getOrDefault(emptyList()) }
+        clientBookings = bookingsDeferred.await()
+        masterBookings = emptyList()
+        workPhotos = emptyList()
+    }
+
+    /**
+     * Master: fan out all independent calls in parallel — client bookings, master
+     * profile and work-photo list all hit unrelated endpoints, so running them
+     * sequentially was the main cause of the multi-second profile load seen in
+     * logcat. Master-bookings need the master id, so they kick off right after
+     * the profile resolves (still in parallel with the work-photos list).
+     */
+    private suspend fun syncMasterData(token: String) = coroutineScope {
+        val clientBookingsDeferred =
+            async { runCatching { bookingRepository.getMyBookings(token) }.getOrDefault(emptyList()) }
+        val masterProfileDeferred = async { runCatching { masterRepository.getMyMasterProfile(token) } }
+        val workPhotosDeferred = async { runCatching { masterRepository.getMyWorkPhotos(token) } }
+
+        clientBookings = clientBookingsDeferred.await()
+
+        val masterResult = masterProfileDeferred.await()
+        val masterError = masterResult.exceptionOrNull()
+        if (masterError != null) {
+            if (!isNotFoundError(masterError)) throw masterError
+            masterBookings = emptyList()
+            workPhotos = workPhotosDeferred.await().getOrDefault(emptyList())
+            return@coroutineScope
+        }
+
+        val master = masterResult.getOrNull() ?: return@coroutineScope
+        session.saveMasterProfile(master)
+        session.saveMasterDraft(master.toDraft())
+
+        val masterBookingsDeferred = async { loadMasterBookingsRange(master.id) }
+        val photosResult = workPhotosDeferred.await()
+        workPhotos = photosResult.getOrElse { master.workPhotos.orEmpty() }
+        masterBookings = masterBookingsDeferred.await()
+    }
+
+    private fun isNotFoundError(error: Throwable): Boolean {
+        return error.message?.contains("HTTP 404") == true
     }
 
     private fun setupClickListeners() {
@@ -652,8 +693,7 @@ class ProfileActivity : AppCompatActivity() {
             if (combined.isEmpty()) View.VISIBLE else View.GONE
 
         // Grid is capped at MAX_GRID_TILES (9). Slot 9 is reserved for the "+" tile
-        // so the master can always add more: either a plain add tile (few photos)
-        // or a blurred-overlay add tile when the portfolio already has 9+ photos.
+        // so the master can always add more photos regardless of portfolio size.
         val overflow = combined.size >= MAX_GRID_TILES
         val normalTileCount = if (overflow) MAX_GRID_TILES - 1 else combined.size
 
@@ -662,12 +702,9 @@ class ProfileActivity : AppCompatActivity() {
         }
 
         if (overflow) {
-            val overflowPhotoUrl = combined.getOrNull(MAX_GRID_TILES - 1)?.photoUrl.orEmpty()
             if (canUploadMore) {
-                container.addView(createBlurredAddTile(overflowPhotoUrl))
+                container.addView(createAddPhotoTile())
             } else {
-                // Portfolio already at the backend cap (50). Just show the 9th photo
-                // as a normal tile — master can still open the gallery to see/delete more.
                 container.addView(
                     createWorkPhotoTile(combined[MAX_GRID_TILES - 1], MAX_GRID_TILES - 1, combined, canDelete),
                 )
@@ -753,69 +790,6 @@ class ProfileActivity : AppCompatActivity() {
         }
         frame.addView(plus)
         return frame
-    }
-
-    /** Tile that shows a blurred photo as background with a centered "+" — used when
-     *  the portfolio already has 9+ photos, so slot 9 doubles as the add button. */
-    private fun createBlurredAddTile(photoUrl: String): View {
-        val frame = FrameLayout(this).apply {
-            layoutParams = workTileLayoutParams()
-            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_photo_grid_cell)
-            isClickable = true
-            isFocusable = true
-            foreground = ContextCompat.getDrawable(
-                this@ProfileActivity,
-                androidx.appcompat.R.drawable.abc_list_selector_holo_light,
-            )
-            contentDescription = getString(R.string.master_add_photo_desc)
-            setOnClickListener { launchWorkPhotoPicker() }
-        }
-
-        val bg = ImageView(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            )
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            contentDescription = null
-            if (photoUrl.isNotBlank()) {
-                load(photoUrl) {
-                    crossfade(true)
-                    listener(onSuccess = { _, _ -> applyTileBlur(this@apply) })
-                }
-            } else {
-                setBackgroundResource(R.drawable.bg_photo_add_empty)
-            }
-        }
-        frame.addView(bg)
-
-        val plus = ImageView(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                44.dp(),
-                44.dp(),
-                Gravity.CENTER,
-            )
-            background = ContextCompat.getDrawable(this@ProfileActivity, R.drawable.bg_peach_circle)
-            setPadding(10.dp())
-            setImageResource(R.drawable.ic_plus_white)
-            contentDescription = getString(R.string.master_add_photo_desc)
-        }
-        frame.addView(plus)
-        return frame
-    }
-
-    /** Device-level blur on API 31+; falls back to reduced alpha on older devices.
-     *  Radius 12f produces a visually similar result to 22f on a ~100dp tile while
-     *  costing noticeably less GPU/CPU time (blur work scales with radius²), which
-     *  matters on the emulator where RenderEffect may fall back to software paths. */
-    private fun applyTileBlur(view: View) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            view.setRenderEffect(
-                RenderEffect.createBlurEffect(12f, 12f, Shader.TileMode.CLAMP),
-            )
-        } else {
-            view.alpha = 0.55f
-        }
     }
 
     private fun openGalleryAt(photos: List<MasterWorkPhotoResponse>, startIndex: Int) {
@@ -1545,10 +1519,6 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun String.shortTime(): String = take(5)
-
-    private fun isNotFoundError(error: Exception): Boolean {
-        return error.message?.contains("HTTP 404") == true
-    }
 
     private fun confirmSwitchToProfessional(token: String, onDone: () -> Unit) {
         AlertDialog.Builder(this)

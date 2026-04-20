@@ -1,9 +1,6 @@
 package com.example.beautyappfrontend.ui.screens
 
 import android.content.Intent
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -23,6 +20,7 @@ import androidx.core.app.NavUtils
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import coil.load
+import kotlinx.coroutines.async
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.BookingRepository
 import com.example.beautyappfrontend.data.repository.ChatRepository
@@ -102,35 +100,65 @@ class MasterDetailActivity : AppCompatActivity() {
     private fun loadMaster(masterId: Int) {
         lifecycleScope.launch {
             try {
+                // Kick off the booked-slots request immediately in parallel with the
+                // master profile — they hit different endpoints and both are needed
+                // to render the screen, so running them concurrently shaves roughly
+                // one network round-trip off the initial "loading" time.
+                val bookingsDeferred = async {
+                    runCatching {
+                        val range = bookingRange()
+                        bookingRepository.getMasterBookings(masterId, range.first, range.second)
+                    }.getOrDefault(emptyList())
+                }
                 val master = repository.getMasterProfile(masterId)
                 currentMaster = master
                 bindMaster(master)
-                loadBookedSlots(master.id)
-                binding.progress.visibility = View.GONE
-                binding.scrollContent.visibility = View.VISIBLE
+                // Reveal the content as soon as profile data is on screen, even
+                // before the bookings overlay is ready — prevents the long blank
+                // screen seen in logcat while two sequential GETs completed.
+                showContent()
+                applyBookedSlots(bookingsDeferred.await())
             } catch (e: Exception) {
-                binding.progress.visibility = View.GONE
+                hideProgress()
                 Toast.makeText(this@MasterDetailActivity, e.message ?: getString(R.string.load_failed), Toast.LENGTH_LONG).show()
                 finish()
             }
         }
     }
 
-    private suspend fun loadBookedSlots(masterId: Int) {
-        try {
+    private fun showContent() {
+        binding.progress.visibility = View.GONE
+        binding.scrollContent.visibility = View.VISIBLE
+    }
+
+    private fun hideProgress() {
+        binding.progress.visibility = View.GONE
+    }
+
+    private fun applyBookedSlots(bookings: List<BookingResponse>) {
+        cachedBookings = bookings
+        bookedScheduleWeeks = buildBookedWeeks(bookings)
+        renderScheduleWeek()
+    }
+
+    private suspend fun refreshBookedSlots(masterId: Int) {
+        val bookings = runCatching {
             val range = bookingRange()
-            val bookings = bookingRepository.getMasterBookings(masterId, range.first, range.second)
-            cachedBookings = bookings
-            bookedScheduleWeeks = buildBookedWeeks(bookings)
-            renderScheduleWeek()
-        } catch (_: Exception) {
-            cachedBookings = emptyList()
-            bookedScheduleWeeks = MasterScheduleData.empty()
-            renderScheduleWeek()
-        }
+            bookingRepository.getMasterBookings(masterId, range.first, range.second)
+        }.getOrDefault(emptyList())
+        applyBookedSlots(bookings)
     }
 
     private fun bindMaster(m: MasterProfileResponse) {
+        bindMasterHeader(m)
+        bindMasterPhoto(m)
+        bindPriceSection(m)
+        bindWorkPhotosSection(m)
+        bindMessageButton(m)
+        bindInitialSchedule(m)
+    }
+
+    private fun bindMasterHeader(m: MasterProfileResponse) {
         binding.tvName.text = m.name.ifBlank { "—" }
         binding.tvSpecialization.text = m.specialization.ifBlank { "—" }
         binding.tvRating.text = getString(R.string.master_rating_format, m.rating.toDouble())
@@ -138,7 +166,9 @@ class MasterDetailActivity : AppCompatActivity() {
         binding.tvLocation.text = loc.ifBlank { "—" }
         binding.tvDescription.text = m.description.ifBlank { getString(R.string.no_description) }
         binding.tvExperience.text = getString(R.string.experience_years_format, m.experienceYears.coerceAtLeast(0))
+    }
 
+    private fun bindMasterPhoto(m: MasterProfileResponse) {
         if (m.profilePhoto.isNotBlank()) {
             binding.ivPhoto.load(m.profilePhoto) {
                 crossfade(true)
@@ -148,10 +178,9 @@ class MasterDetailActivity : AppCompatActivity() {
         } else {
             binding.ivPhoto.setImageResource(R.drawable.ic_nav_profile)
         }
+    }
 
-        bindPriceSection(m)
-        bindWorkPhotosSection(m)
-        bindMessageButton(m)
+    private fun bindInitialSchedule(m: MasterProfileResponse) {
         cachedScheduleWeeks = MasterProfileSchedule.buildScheduleWeeks(m)
         scheduleWeekOffset = 0
         renderScheduleWeek()
@@ -175,7 +204,7 @@ class MasterDetailActivity : AppCompatActivity() {
         val ids = photos.map { it.id ?: 0 }
 
         val overflow = photos.size > MAX_GRID_TILES
-        // When there are more than 9 photos, slot 9 becomes a blurred "see more" tile
+        // When there are more than 9 photos, slot 9 becomes a plain "See more" tile
         // that opens the fullscreen gallery at that 9th photo (index MAX_GRID_TILES - 1).
         val normalTileCount =
             if (overflow) MAX_GRID_TILES - 1 else photos.size.coerceAtMost(MAX_GRID_TILES)
@@ -185,10 +214,8 @@ class MasterDetailActivity : AppCompatActivity() {
         }
 
         if (overflow) {
-            val overflowPhotoUrl = photos[MAX_GRID_TILES - 1].photoUrl
             grid.addView(
                 createSeeMoreTile(
-                    photoUrl = overflowPhotoUrl,
                     startIndex = MAX_GRID_TILES - 1,
                     urls = urls,
                     ids = ids,
@@ -298,10 +325,10 @@ class MasterDetailActivity : AppCompatActivity() {
         return frame
     }
 
-    /** Slot 9 when the master has more than 9 photos — blurred overflow photo
-     *  with a "See more" pill; tapping opens the gallery at that photo. */
+    /** Slot 9 when the master has more than 9 photos — a plain "See more" tile that
+     *  opens the fullscreen gallery at the overflow position. No photo/blur here to
+     *  keep the grid lightweight. */
     private fun createSeeMoreTile(
-        photoUrl: String,
         startIndex: Int,
         urls: List<String>,
         ids: List<Int>,
@@ -319,20 +346,6 @@ class MasterDetailActivity : AppCompatActivity() {
             setOnClickListener { openGallery(urls, ids, startIndex) }
         }
 
-        val bg = ImageView(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            )
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            contentDescription = null
-            load(photoUrl) {
-                crossfade(true)
-                listener(onSuccess = { _, _ -> applyTileBlur(this@apply) })
-            }
-        }
-        frame.addView(bg)
-
         val label = TextView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -348,16 +361,6 @@ class MasterDetailActivity : AppCompatActivity() {
         frame.addView(label)
 
         return frame
-    }
-
-    private fun applyTileBlur(view: View) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            view.setRenderEffect(
-                RenderEffect.createBlurEffect(22f, 22f, Shader.TileMode.CLAMP),
-            )
-        } else {
-            view.alpha = 0.55f
-        }
     }
 
     private fun openGallery(urls: List<String>, ids: List<Int>, startIndex: Int) {
@@ -549,7 +552,7 @@ class MasterDetailActivity : AppCompatActivity() {
                                 notes = bindingDialog.etBookingNotes.text.toString().trim(),
                             ),
                         )
-                        loadBookedSlots(master.id)
+                        refreshBookedSlots(master.id)
                         dialog.dismiss()
                         Toast.makeText(this@MasterDetailActivity, R.string.booking_success, Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {

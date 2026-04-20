@@ -92,24 +92,31 @@ class ChatActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                allConversations = chatRepository.getConversations(token)
-                adapter.updateData(allConversations)
-                updateEmptyState(allConversations.isEmpty())
-                Log.d(TAG, "Loaded ${allConversations.size} conversations")
+                val conversations = chatRepository.getConversations(token)
+                applyConversations(conversations)
+                Log.d(TAG, "Loaded ${conversations.size} conversations")
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading conversations", e)
-                if (e.message?.contains("401") == true) {
-                    Toast.makeText(
-                        this@ChatActivity,
-                        "Session expired. Please sign out and sign in again.",
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-                allConversations = emptyList()
-                adapter.updateData(emptyList())
-                updateEmptyState(true)
+                handleLoadError(e)
             }
         }
+    }
+
+    private fun applyConversations(conversations: List<Conversation>) {
+        allConversations = conversations
+        adapter.updateData(conversations)
+        updateEmptyState(conversations.isEmpty())
+    }
+
+    private fun handleLoadError(e: Exception) {
+        Log.e(TAG, "Error loading conversations", e)
+        if (e.message?.contains("401") == true) {
+            Toast.makeText(
+                this,
+                "Session expired. Please sign out and sign in again.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+        applyConversations(emptyList())
     }
 
     private fun updateEmptyState(isEmpty: Boolean) {
