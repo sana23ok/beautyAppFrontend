@@ -127,6 +127,8 @@ class SessionManager(context: Context) {
             .putString(KEY_MASTER_FRIDAY_HOURS, profile.fridayHours)
             .putString(KEY_MASTER_SATURDAY_HOURS, profile.saturdayHours)
             .putString(KEY_MASTER_SUNDAY_HOURS, profile.sundayHours)
+            .putString(KEY_MASTER_IBAN, profile.iban)
+            .putString(KEY_MASTER_PAYMENT_PURPOSE, profile.paymentPurpose)
             .apply()
     }
 
@@ -150,6 +152,8 @@ class SessionManager(context: Context) {
             .putString(KEY_MASTER_FRIDAY_HOURS, draft.fridayHours)
             .putString(KEY_MASTER_SATURDAY_HOURS, draft.saturdayHours)
             .putString(KEY_MASTER_SUNDAY_HOURS, draft.sundayHours)
+            .putString(KEY_MASTER_IBAN, draft.iban)
+            .putString(KEY_MASTER_PAYMENT_PURPOSE, draft.paymentPurpose)
             .putString(KEY_MASTER_SCHEDULE_WEEKS_JSON, scheduleWeeksToJson(draft.scheduleWeeks))
             .putString(KEY_MASTER_SERVICES_JSON, gson.toJson(draft.services))
             .apply()
@@ -188,6 +192,8 @@ class SessionManager(context: Context) {
             sundayHours = prefs.getString(KEY_MASTER_SUNDAY_HOURS, "") ?: "",
             scheduleWeeks = parseScheduleWeeks(prefs.getString(KEY_MASTER_SCHEDULE_WEEKS_JSON, null)),
             services = parseMasterServices(prefs.getString(KEY_MASTER_SERVICES_JSON, null)),
+            iban = prefs.getString(KEY_MASTER_IBAN, "") ?: "",
+            paymentPurpose = prefs.getString(KEY_MASTER_PAYMENT_PURPOSE, "") ?: "",
         )
     }
 
@@ -265,5 +271,7 @@ class SessionManager(context: Context) {
         private const val KEY_MASTER_SUNDAY_HOURS = "master_sunday_hours"
         private const val KEY_MASTER_SCHEDULE_WEEKS_JSON = "master_schedule_weeks_json"
         private const val KEY_MASTER_SERVICES_JSON = "master_services_json"
+        private const val KEY_MASTER_IBAN = "master_iban"
+        private const val KEY_MASTER_PAYMENT_PURPOSE = "master_payment_purpose"
     }
 }

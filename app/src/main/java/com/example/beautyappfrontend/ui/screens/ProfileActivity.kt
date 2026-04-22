@@ -15,6 +15,7 @@ import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.CheckBox
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -167,6 +168,7 @@ class ProfileActivity : AppCompatActivity() {
         val name: EditText,
         val minutes: EditText,
         val price: EditText,
+        val prepayment: CheckBox,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -341,7 +343,10 @@ class ProfileActivity : AppCompatActivity() {
             openScheduleEditDialog()
         }
         binding.btnAddMasterService.setOnClickListener {
-            addServiceRow()
+            addServiceRow(
+                MasterServiceItem(),
+                canOfferPrepayment(session.getMasterDraft()),
+            )
         }
         binding.btnSaveMasterPriceList.setOnClickListener {
             savePriceList()
@@ -510,25 +515,38 @@ class ProfileActivity : AppCompatActivity() {
         binding.layoutMasterPriceBlock.visibility = if (draft.masterId != null) View.VISIBLE else View.GONE
         binding.layoutMasterPriceRows.removeAllViews()
 
+        val prepaymentAllowed = canOfferPrepayment(draft)
         val rows = draft.services
             .map { it.copy(name = it.name.trim()) }
             .filter { it.name.isNotBlank() || it.durationMinutes > 0 || it.price > 0 }
 
         if (rows.isEmpty()) {
-            addServiceRow()
+            addServiceRow(MasterServiceItem(), prepaymentAllowed)
             return
         }
-        rows.forEach { addServiceRow(it) }
+        rows.forEach { addServiceRow(it, prepaymentAllowed) }
     }
 
-    private fun addServiceRow(initial: MasterServiceItem = MasterServiceItem()) {
+    /** Both IBAN and payment reference required before mandatory prepayment can be enabled. */
+    private fun canOfferPrepayment(draft: MasterProfileDraft): Boolean =
+        draft.iban.isNotBlank() && draft.paymentPurpose.isNotBlank()
+
+    private fun addServiceRow(initial: MasterServiceItem = MasterServiceItem(), prepaymentAllowed: Boolean = false) {
+        val block = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            setPadding(0, 8.dp(), 0, 4.dp())
+        }
+
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             )
-            setPadding(0, 8.dp(), 0, 4.dp())
         }
 
         val etName = EditText(this).apply {
@@ -563,8 +581,13 @@ class ProfileActivity : AppCompatActivity() {
             imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@ProfileActivity, R.color.peach_dark))
             contentDescription = getString(R.string.master_price_remove_row)
             setOnClickListener {
-                binding.layoutMasterPriceRows.removeView(row)
-                if (binding.layoutMasterPriceRows.childCount == 0) addServiceRow()
+                binding.layoutMasterPriceRows.removeView(block)
+                if (binding.layoutMasterPriceRows.childCount == 0) {
+                    addServiceRow(
+                        MasterServiceItem(),
+                        canOfferPrepayment(session.getMasterDraft()),
+                    )
+                }
             }
         }
 
@@ -572,11 +595,28 @@ class ProfileActivity : AppCompatActivity() {
         row.addView(etMinutes)
         row.addView(etPrice)
         row.addView(btnRemove)
-        row.tag = ServiceRowViews(initial.id, etName, etMinutes, etPrice)
-        binding.layoutMasterPriceRows.addView(row)
+
+        val effectivePrepayment = prepaymentAllowed && initial.requiresPrepayment
+        val cbPrepayment = CheckBox(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = 6.dp() }
+            text = getString(R.string.master_price_prepayment)
+            setTextColor(ContextCompat.getColor(this@ProfileActivity, R.color.text_primary))
+            isChecked = effectivePrepayment
+            isEnabled = prepaymentAllowed
+            alpha = if (prepaymentAllowed) 1f else 0.45f
+        }
+
+        block.addView(row)
+        block.addView(cbPrepayment)
+        block.tag = ServiceRowViews(initial.id, etName, etMinutes, etPrice, cbPrepayment)
+        binding.layoutMasterPriceRows.addView(block)
     }
 
     private fun collectServicesFromRows(): List<MasterServiceItem>? {
+        val prepaymentAllowed = canOfferPrepayment(session.getMasterDraft())
         val out = mutableListOf<MasterServiceItem>()
         for (i in 0 until binding.layoutMasterPriceRows.childCount) {
             val row = binding.layoutMasterPriceRows.getChildAt(i)
@@ -587,25 +627,27 @@ class ProfileActivity : AppCompatActivity() {
             if (name.isBlank() && minutesRaw.isBlank() && priceRaw.isBlank()) continue
 
             if (name.isBlank()) {
-                Toast.makeText(this, "Enter service name in row ${i + 1}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.master_price_row_name_required, i + 1), Toast.LENGTH_SHORT).show()
                 return null
             }
             val minutes = minutesRaw.toIntOrNull()
             if (minutes == null || minutes < 0) {
-                Toast.makeText(this, "Invalid duration in row ${i + 1}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.master_price_row_duration_invalid, i + 1), Toast.LENGTH_SHORT).show()
                 return null
             }
             val price = priceRaw.toIntOrNull()
             if (price == null || price < 0) {
-                Toast.makeText(this, "Invalid price in row ${i + 1}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.master_price_row_price_invalid, i + 1), Toast.LENGTH_SHORT).show()
                 return null
             }
+            val wantsPrepayment = holder.prepayment.isChecked && holder.prepayment.isEnabled && prepaymentAllowed
             out.add(
                 MasterServiceItem(
                     id = holder.serviceId,
                     name = name,
                     durationMinutes = minutes,
                     price = price,
+                    requiresPrepayment = wantsPrepayment,
                 ),
             )
         }
@@ -624,6 +666,10 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
         val currentRows = collectServicesFromRows() ?: return
+        if (currentRows.any { it.requiresPrepayment } && !canOfferPrepayment(draft)) {
+            Toast.makeText(this, getString(R.string.master_prepayment_requires_payment_details), Toast.LENGTH_LONG).show()
+            return
+        }
 
         // Diff: figure out which services to create, update, or delete.
         val originalIds = draft.services.mapNotNull { it.id }.toSet()
@@ -1385,6 +1431,8 @@ class ProfileActivity : AppCompatActivity() {
             if (draft.experienceYears > 0) draft.experienceYears.toString() else ""
         )
         dialogBinding.etMasterDescription.setText(draft.description)
+        dialogBinding.etMasterIban.setText(draft.iban)
+        dialogBinding.etMasterPaymentPurpose.setText(draft.paymentPurpose)
         dialogBinding.etMasterWorkPhotoCaption.setText(draft.workPhotoCaption)
     }
 
@@ -1402,6 +1450,8 @@ class ProfileActivity : AppCompatActivity() {
         val profilePhoto = session.getAvatarUrl().orEmpty().ifBlank { base.profilePhoto }
         val workPhotoUrl = base.workPhotoUrl
         val workPhotoCaption = dialogBinding.etMasterWorkPhotoCaption.text.toString().trim()
+        val iban = dialogBinding.etMasterIban.text.toString().trim()
+        val paymentPurpose = dialogBinding.etMasterPaymentPurpose.text.toString().trim()
 
         if (name.isBlank()) {
             Toast.makeText(this, "Enter your master name", Toast.LENGTH_SHORT).show()
@@ -1435,6 +1485,8 @@ class ProfileActivity : AppCompatActivity() {
             workPhotoUrls = workPhotoUrls,
             workPhotoUrl = workPhotoUrl,
             workPhotoCaption = workPhotoCaption,
+            iban = iban,
+            paymentPurpose = paymentPurpose,
             mondayHours = base.mondayHours,
             tuesdayHours = base.tuesdayHours,
             wednesdayHours = base.wednesdayHours,
@@ -1456,6 +1508,8 @@ class ProfileActivity : AppCompatActivity() {
             experienceYears = experienceYears,
             description = description,
             profilePhoto = profilePhoto,
+            iban = iban,
+            paymentPurpose = paymentPurpose,
             mondayHours = mondayHours,
             tuesdayHours = tuesdayHours,
             wednesdayHours = wednesdayHours,
@@ -1483,6 +1537,7 @@ class ProfileActivity : AppCompatActivity() {
                     name = row.name,
                     price = row.price,
                     durationMinutes = row.durationMinutes,
+                    requiresPrepayment = row.requiresPrepayment,
                 )
             },
         )
@@ -1517,6 +1572,8 @@ class ProfileActivity : AppCompatActivity() {
             experienceYears = experienceYears,
             description = description,
             profilePhoto = profilePhoto,
+            iban = iban,
+            paymentPurpose = paymentPurpose,
             workPhotoUrls = filteredUrls,
             workPhotoUrl = filteredUrls.firstOrNull() ?: "",
             workPhotoCaption = photos.firstOrNull()?.caption ?: "",
@@ -1528,14 +1585,17 @@ class ProfileActivity : AppCompatActivity() {
             saturdayHours = saturdayHours,
             sundayHours = sundayHours,
             scheduleWeeks = normalizeScheduleWeeks(MasterProfileSchedule.buildScheduleWeeks(this)),
-            services = services.orEmpty().map { s ->
-                MasterServiceItem(
-                    id = s.id,
-                    name = s.name,
-                    price = kotlin.math.round(s.price).toInt().coerceAtLeast(0),
-                    durationMinutes = s.durationMinutes,
-                    requiresPrepayment = s.requiresPrepayment,
-                )
+            services = run {
+                val allow = iban.isNotBlank() && paymentPurpose.isNotBlank()
+                services.orEmpty().map { s ->
+                    MasterServiceItem(
+                        id = s.id,
+                        name = s.name,
+                        price = kotlin.math.round(s.price).toInt().coerceAtLeast(0),
+                        durationMinutes = s.durationMinutes,
+                        requiresPrepayment = s.requiresPrepayment && allow,
+                    )
+                }
             },
         )
     }

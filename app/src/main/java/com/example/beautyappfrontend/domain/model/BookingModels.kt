@@ -30,6 +30,7 @@ data class BookingResponse(
     val service: Int,
     @SerializedName("service_name") val serviceName: String = "",
     @SerializedName("service_duration_minutes") val serviceDurationMinutes: Int = 0,
+    @SerializedName("service_requires_prepayment") val serviceRequiresPrepayment: Boolean = false,
     @SerializedName("appointment_date") val appointmentDate: String,
     @SerializedName("start_time") val startTime: String,
     @SerializedName("end_time") val endTime: String,

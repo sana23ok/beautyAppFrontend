@@ -90,6 +90,32 @@
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_hint" />
 
+        <EditText
+            android:id="@+id/et_master_iban"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_input_field"
+            android:hint="@string/master_iban_hint"
+            android:inputType="textCapCharacters"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" />
+
+        <EditText
+            android:id="@+id/et_master_payment_purpose"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_input_field"
+            android:hint="@string/master_payment_purpose_hint"
+            android:inputType="textCapSentences"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" />
+
         <Button
             android:id="@+id/btn_upload_profile_photo"
             android:layout_width="match_parent"

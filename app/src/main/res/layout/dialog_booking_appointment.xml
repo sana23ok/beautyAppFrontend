@@ -36,6 +36,16 @@
             android:background="@drawable/bg_input_field" />
 
         <TextView
+            android:id="@+id/tv_booking_prepayment_notice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/booking_prepayment_notice"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"

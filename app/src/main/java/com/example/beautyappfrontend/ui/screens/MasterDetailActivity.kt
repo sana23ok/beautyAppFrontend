@@ -405,11 +405,7 @@ class MasterDetailActivity : AppCompatActivity() {
         binding.cardPriceList.visibility = View.VISIBLE
         binding.tvPriceEmpty.visibility = View.GONE
         services.forEachIndexed { index, svc ->
-            binding.layoutPriceRows.addView(createPriceRow(
-                service = svc.name.trim().ifBlank { "—" },
-                minutes = if (svc.durationMinutes > 0) svc.durationMinutes.toString() else "—",
-                price = formatPrice(svc.price),
-            ))
+            binding.layoutPriceRows.addView(createPriceRow(svc))
             if (index < services.lastIndex) {
                 binding.layoutPriceRows.addView(
                     View(this).apply {
@@ -455,7 +451,19 @@ class MasterDetailActivity : AppCompatActivity() {
         val bindingDialog = DialogBookingAppointmentBinding.inflate(layoutInflater)
         bindingDialog.tvBookingDate.text = bookingDate.toDisplayDate()
 
-        val serviceLabels = services.map { "${it.name} · ${it.durationMinutes} min · ${formatPrice(it.price)}" }
+        val serviceLabels = services.map { svc ->
+            buildString {
+                append(svc.name)
+                append(" · ")
+                append(svc.durationMinutes)
+                append(" min · ")
+                append(formatPrice(svc.price))
+                if (svc.requiresPrepayment) {
+                    append(" · ")
+                    append(getString(R.string.master_detail_prepayment_badge))
+                }
+            }
+        }
         bindingDialog.spinnerBookingService.adapter =
             ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, serviceLabels)
 
@@ -509,8 +517,11 @@ class MasterDetailActivity : AppCompatActivity() {
 
         bindingDialog.spinnerBookingService.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selectedService = services[position]
-                loadSlots(services[position])
+                val svc = services[position]
+                selectedService = svc
+                bindingDialog.tvBookingPrepaymentNotice.visibility =
+                    if (svc.requiresPrepayment) View.VISIBLE else View.GONE
+                loadSlots(svc)
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -525,6 +536,8 @@ class MasterDetailActivity : AppCompatActivity() {
 
         dialog.setOnShowListener {
             selectedService = services.firstOrNull()
+            bindingDialog.tvBookingPrepaymentNotice.visibility =
+                if (services.firstOrNull()?.requiresPrepayment == true) View.VISIBLE else View.GONE
             selectedService?.let { loadSlots(it) }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).text = getString(R.string.booking_dialog_title)
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -692,39 +705,64 @@ class MasterDetailActivity : AppCompatActivity() {
         return SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(date)
     }
 
-    private fun createPriceRow(service: String, minutes: String, price: String): View {
+    private fun createPriceRow(svc: MasterServiceResponse): View {
+        val service = svc.name.trim().ifBlank { "—" }
+        val minutes = if (svc.durationMinutes > 0) svc.durationMinutes.toString() else "—"
+        val price = formatPrice(svc.price)
         return LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+            orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = 8.dp() }
             addView(
-                TextView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    text = service
-                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                    textSize = 14f
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    )
+                    addView(
+                        TextView(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                            text = service
+                            setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                            textSize = 14f
+                        },
+                    )
+                    addView(
+                        TextView(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(52.dp(), LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = 6.dp() }
+                            text = minutes
+                            textAlignment = View.TEXT_ALIGNMENT_CENTER
+                            setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                            textSize = 14f
+                        },
+                    )
+                    addView(
+                        TextView(context).apply {
+                            layoutParams = LinearLayout.LayoutParams(72.dp(), LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = 6.dp() }
+                            text = price
+                            textAlignment = View.TEXT_ALIGNMENT_VIEW_END
+                            setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                            textSize = 14f
+                        },
+                    )
                 },
             )
-            addView(
-                TextView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(52.dp(), LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = 6.dp() }
-                    text = minutes
-                    textAlignment = View.TEXT_ALIGNMENT_CENTER
-                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
-                    textSize = 14f
-                },
-            )
-            addView(
-                TextView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(72.dp(), LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = 6.dp() }
-                    text = price
-                    textAlignment = View.TEXT_ALIGNMENT_VIEW_END
-                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                    textSize = 14f
-                },
-            )
+            if (svc.requiresPrepayment) {
+                addView(
+                    TextView(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                        ).apply { topMargin = 4.dp() }
+                        text = getString(R.string.master_detail_prepayment_badge)
+                        setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                        textSize = 12f
+                    },
+                )
+            }
         }
     }
 

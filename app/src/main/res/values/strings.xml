@@ -49,6 +49,14 @@
     <string name="master_price_save">Save price list</string>
     <string name="master_price_remove_row">Remove service</string>
     <string name="master_price_saved">Price list saved</string>
+    <string name="master_price_prepayment">Mandatory prepayment</string>
+    <string name="master_iban_hint">IBAN for prepayment (UA…)</string>
+    <string name="master_payment_purpose_hint">Payment reference</string>
+    <string name="master_prepayment_requires_payment_details">Add your IBAN and payment reference under Edit Information before enabling mandatory prepayment.</string>
+    <string name="master_price_row_name_required">Enter a service name for row %1$d.</string>
+    <string name="master_price_row_duration_invalid">Invalid duration in row %1$d.</string>
+    <string name="master_price_row_price_invalid">Invalid price in row %1$d.</string>
+    <string name="master_detail_prepayment_badge">Mandatory prepayment</string>
 
     <string name="master_photos_title">Photos</string>
     <string name="master_photo_slot_desc">Portfolio photo</string>
@@ -115,6 +123,7 @@
     <string name="booking_cancel_success">Appointment cancelled. The client has been notified.</string>
     <string name="booking_cancel_already_past">This appointment has already passed.</string>
     <string name="booking_success">Appointment created successfully.</string>
+    <string name="booking_prepayment_notice">This service requires a mandatory prepayment. After booking you will receive a message with payment details. Pay at least 5 hours before your visit — otherwise the master may cancel your booking.</string>
     <string name="booking_time_option">%1$s (%2$d min)</string>
     <string name="appointments_empty">No planned appointments yet.</string>
 </resources>
