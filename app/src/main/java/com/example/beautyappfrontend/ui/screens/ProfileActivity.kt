@@ -163,6 +163,7 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private data class ServiceRowViews(
+        val serviceId: Int?,
         val name: EditText,
         val minutes: EditText,
         val price: EditText,
@@ -571,7 +572,7 @@ class ProfileActivity : AppCompatActivity() {
         row.addView(etMinutes)
         row.addView(etPrice)
         row.addView(btnRemove)
-        row.tag = ServiceRowViews(etName, etMinutes, etPrice)
+        row.tag = ServiceRowViews(initial.id, etName, etMinutes, etPrice)
         binding.layoutMasterPriceRows.addView(row)
     }
 
@@ -601,6 +602,7 @@ class ProfileActivity : AppCompatActivity() {
             }
             out.add(
                 MasterServiceItem(
+                    id = holder.serviceId,
                     name = name,
                     durationMinutes = minutes,
                     price = price,
@@ -621,13 +623,47 @@ class ProfileActivity : AppCompatActivity() {
             Toast.makeText(this, "Create your master profile first", Toast.LENGTH_SHORT).show()
             return
         }
-        val services = collectServicesFromRows() ?: return
+        val currentRows = collectServicesFromRows() ?: return
+
+        // Diff: figure out which services to create, update, or delete.
+        val originalIds = draft.services.mapNotNull { it.id }.toSet()
+        val currentIds  = currentRows.mapNotNull { it.id }.toSet()
+        val toDeleteIds = originalIds - currentIds
+        val toUpdate    = currentRows.filter { it.id != null }
+        val toCreate    = currentRows.filter { it.id == null }
 
         binding.btnSaveMasterPriceList.isEnabled = false
         lifecycleScope.launch {
             try {
-                val updatedDraft = draft.copy(services = services)
-                masterRepository.updateMyMasterProfile(token, updatedDraft.toRequestWithScheduleFromGrid())
+                // 1. Delete removed rows (safe: backend keeps row if bookings exist)
+                for (id in toDeleteIds) {
+                    masterRepository.deleteService(token, id)
+                }
+                // 2. Update changed existing rows
+                for (svc in toUpdate) {
+                    masterRepository.updateService(
+                        token, svc.id!!,
+                        MasterServiceRequest(
+                            name = svc.name,
+                            price = svc.price,
+                            durationMinutes = svc.durationMinutes,
+                            requiresPrepayment = svc.requiresPrepayment,
+                        ),
+                    )
+                }
+                // 3. Create brand-new rows
+                for (svc in toCreate) {
+                    masterRepository.createService(
+                        token,
+                        MasterServiceRequest(
+                            name = svc.name,
+                            price = svc.price,
+                            durationMinutes = svc.durationMinutes,
+                            requiresPrepayment = svc.requiresPrepayment,
+                        ),
+                    )
+                }
+                // 4. Re-fetch so UI shows fresh IDs for newly created rows
                 val refreshed = masterRepository.getMyMasterProfile(token)
                 session.saveMasterProfile(refreshed)
                 session.saveMasterDraft(refreshed.toDraft())
@@ -1494,9 +1530,11 @@ class ProfileActivity : AppCompatActivity() {
             scheduleWeeks = normalizeScheduleWeeks(MasterProfileSchedule.buildScheduleWeeks(this)),
             services = services.orEmpty().map { s ->
                 MasterServiceItem(
+                    id = s.id,
                     name = s.name,
                     price = kotlin.math.round(s.price).toInt().coerceAtLeast(0),
                     durationMinutes = s.durationMinutes,
+                    requiresPrepayment = s.requiresPrepayment,
                 )
             },
         )

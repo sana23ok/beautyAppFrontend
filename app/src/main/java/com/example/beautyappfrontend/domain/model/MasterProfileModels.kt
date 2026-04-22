@@ -47,6 +47,7 @@ data class MasterServiceRequest(
     val name: String,
     val price: Int = 0,
     @SerializedName("duration_minutes") val durationMinutes: Int = 0,
+    @SerializedName("requires_prepayment") val requiresPrepayment: Boolean = false,
 )
 
 data class MasterServiceResponse(
@@ -55,6 +56,7 @@ data class MasterServiceResponse(
     /** API may send integer or decimal; Gson is more reliable with Double. */
     val price: Double = 0.0,
     @SerializedName("duration_minutes") val durationMinutes: Int = 0,
+    @SerializedName("requires_prepayment") val requiresPrepayment: Boolean = false,
 )
 
 data class MasterWeekTimetableResponse(
@@ -151,8 +153,11 @@ data class MasterProfileDraft(
 )
 
 data class MasterServiceItem(
+    /** Backend ID; null for rows that haven't been saved yet. */
+    val id: Int? = null,
     val name: String = "",
     val price: Int = 0,
     /** Procedure length in minutes. */
     val durationMinutes: Int = 0,
+    val requiresPrepayment: Boolean = false,
 )

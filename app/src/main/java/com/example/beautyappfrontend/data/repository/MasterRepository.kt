@@ -5,6 +5,8 @@ import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
+import com.example.beautyappfrontend.domain.model.MasterServiceRequest
+import com.example.beautyappfrontend.domain.model.MasterServiceResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
@@ -87,6 +89,27 @@ class MasterRepository {
         val msg = formatHttpError(response.code(), errorBody)
         Log.e(TAG, "<<< UPDATE MASTER PROFILE ERROR: $msg")
         throw Exception(msg)
+    }
+
+    /** POST /api/masters/me/services/ — create a single service row. */
+    suspend fun createService(token: String, request: MasterServiceRequest): MasterServiceResponse {
+        val response = RetrofitInstance.api.createMyService("Bearer $token", request)
+        if (response.isSuccessful) return response.body() ?: throw Exception("Empty response")
+        throw Exception(formatHttpError(response.code(), response.errorBody()?.string()))
+    }
+
+    /** PATCH /api/masters/me/services/<id>/ — update a single service row. */
+    suspend fun updateService(token: String, id: Int, request: MasterServiceRequest): MasterServiceResponse {
+        val response = RetrofitInstance.api.patchMyService("Bearer $token", id, request)
+        if (response.isSuccessful) return response.body() ?: throw Exception("Empty response")
+        throw Exception(formatHttpError(response.code(), response.errorBody()?.string()))
+    }
+
+    /** DELETE /api/masters/me/services/<id>/ — remove a service from the price list. */
+    suspend fun deleteService(token: String, id: Int) {
+        val response = RetrofitInstance.api.deleteMyService("Bearer $token", id)
+        if (response.isSuccessful) return
+        throw Exception(formatHttpError(response.code(), response.errorBody()?.string()))
     }
 
     /** GET /api/masters/me/week-schedules/ */

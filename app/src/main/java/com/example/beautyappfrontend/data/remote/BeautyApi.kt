@@ -15,6 +15,8 @@ import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterServiceRequest
+import com.example.beautyappfrontend.domain.model.MasterServiceResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
@@ -114,6 +116,25 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Body request: MasterProfileRequest,
     ): Response<MasterProfileResponse>
+
+    @POST("api/masters/me/services/")
+    suspend fun createMyService(
+        @Header("Authorization") authHeader: String,
+        @Body request: MasterServiceRequest,
+    ): Response<MasterServiceResponse>
+
+    @PATCH("api/masters/me/services/{id}/")
+    suspend fun patchMyService(
+        @Header("Authorization") authHeader: String,
+        @Path("id") id: Int,
+        @Body request: MasterServiceRequest,
+    ): Response<MasterServiceResponse>
+
+    @DELETE("api/masters/me/services/{id}/")
+    suspend fun deleteMyService(
+        @Header("Authorization") authHeader: String,
+        @Path("id") id: Int,
+    ): Response<Unit>
 
     @GET("api/masters/me/work_photos/")
     suspend fun getMyWorkPhotos(
