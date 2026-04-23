@@ -15,7 +15,8 @@
     <string name="forgot_password">Forgot password?</string>
     <string name="log_in">Log in</string>
     <string name="register">Register</string>
-    <!-- Replace with your OAuth 2.0 Web Application client ID from Google Cloud Console -->
+    <!-- Web client ID from Google Cloud Console (APIs & Services → Credentials → OAuth 2.0 Client IDs → Web application).
+         Must match beauty_app_backend/.env GOOGLE_WEB_CLIENT_ID for Google Sign-In to work. -->
     <string name="server_client_id">YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com</string>
     <string name="sign_in_with_google">Sign in with Google</string>
     <string name="sign_up_with_google">Sign up with Google</string>

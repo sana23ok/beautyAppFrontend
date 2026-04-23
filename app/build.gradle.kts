@@ -20,14 +20,19 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Must match Django: runserver 0.0.0.0:8000 → default emulator URL below.
-        // Real phone: add to local.properties → api.base.url=http://192.168.x.x:8000/
+        // Django API base URL (trailing slash required for Retrofit).
+        // Priority: local.properties → gradle.properties → emulator default.
+        // - Emulator: http://10.0.2.2:8000/ (maps to host machine’s localhost)
+        // - Physical device: http://YOUR_LAN_IP:8000/ — find IP: ipconfig (IPv4), run: python manage.py runserver 0.0.0.0:8000
         val localProperties = Properties()
         val localFile = rootProject.file("local.properties")
         if (localFile.exists()) {
             localProperties.load(localFile.inputStream())
         }
-        val apiBaseUrl = localProperties.getProperty("api.base.url", "http://10.0.2.2:8000/")
+        val fromLocal = localProperties.getProperty("api.base.url")?.trim()?.takeIf { it.isNotEmpty() }
+        val fromGradle = (findProperty("api.base.url") as String?)?.trim()?.takeIf { it.isNotEmpty() }
+        val raw = fromLocal ?: fromGradle ?: "http://10.0.2.2:8000/"
+        val apiBaseUrl = if (raw.endsWith("/")) raw else "$raw/"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
