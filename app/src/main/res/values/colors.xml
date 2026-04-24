@@ -44,4 +44,8 @@
     <color name="booking_overlay_own">#9990EE90</color>
     <color name="booking_overlay_others_text">#FFFFFF</color>
     <color name="booking_overlay_own_text">#1B5E20</color>
+
+    <!-- Review card -->
+    <color name="review_date_gray">#8A8A8A</color>
+    <color name="review_body_gray">#555555</color>
 </resources>

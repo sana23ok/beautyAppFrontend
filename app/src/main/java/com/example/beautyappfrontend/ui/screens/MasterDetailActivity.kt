@@ -1,7 +1,12 @@
 package com.example.beautyappfrontend.ui.screens
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
@@ -40,6 +45,7 @@ import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -246,11 +252,7 @@ class MasterDetailActivity : AppCompatActivity() {
         val tvMore = card.findViewById<TextView>(R.id.tv_review_read_more)
 
         val name = item.authorName.ifBlank { "—" }
-        tvAuthor.text = if (item.isVerified) {
-            "$name · ${getString(R.string.review_verified)}"
-        } else {
-            name
-        }
+        tvAuthor.text = buildReviewAuthorLabel(name, item.isVerified)
         tvDate.text = formatReviewDate(item.createdAt)
         ratingRow.rating = item.rating.toFloat().coerceIn(0f, 5f)
 
@@ -283,14 +285,39 @@ class MasterDetailActivity : AppCompatActivity() {
         return card
     }
 
+    private fun buildReviewAuthorLabel(name: String, verified: Boolean): CharSequence {
+        val nameColor = ContextCompat.getColor(this, R.color.text_primary)
+        if (!verified) {
+            val s = SpannableString(name)
+            s.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            s.setSpan(ForegroundColorSpan(nameColor), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            return s
+        }
+        val dot = " · "
+        val suffix = getString(R.string.review_verified)
+        val full = name + dot + suffix
+        val ss = SpannableString(full)
+        val mutedGreen = ContextCompat.getColor(this, R.color.text_secondary)
+        ss.setSpan(StyleSpan(Typeface.BOLD), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        ss.setSpan(ForegroundColorSpan(nameColor), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        val fromDot = name.length
+        ss.setSpan(ForegroundColorSpan(mutedGreen), fromDot, full.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        ss.setSpan(StyleSpan(Typeface.NORMAL), fromDot, full.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        return ss
+    }
+
     private fun formatReviewDate(iso: String): String {
         if (iso.isBlank()) return ""
+        val outPattern = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault())
         return try {
             val odt = OffsetDateTime.parse(iso, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-            val fmt = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
-            odt.format(fmt)
+            odt.format(outPattern)
         } catch (_: Exception) {
-            iso.take(10)
+            try {
+                LocalDate.parse(iso.take(10), DateTimeFormatter.ISO_LOCAL_DATE).format(outPattern)
+            } catch (_: Exception) {
+                iso
+            }
         }
     }
 
