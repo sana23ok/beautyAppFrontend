@@ -30,13 +30,18 @@ import com.example.beautyappfrontend.databinding.DialogBookingAppointmentBinding
 import com.example.beautyappfrontend.domain.model.BookingRequest
 import com.example.beautyappfrontend.domain.model.BookingResponse
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterReviewItem
+import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -110,6 +115,11 @@ class MasterDetailActivity : AppCompatActivity() {
                         bookingRepository.getMasterBookings(masterId, range.first, range.second)
                     }.getOrDefault(emptyList())
                 }
+                val reviewsDeferred = async {
+                    runCatching {
+                        repository.getMasterReviews(masterId, session.getToken())
+                    }.getOrNull()
+                }
                 val master = repository.getMasterProfile(masterId)
                 currentMaster = master
                 bindMaster(master)
@@ -118,6 +128,8 @@ class MasterDetailActivity : AppCompatActivity() {
                 // screen seen in logcat while two sequential GETs completed.
                 showContent()
                 applyBookedSlots(bookingsDeferred.await())
+                reviewsDeferred.await()?.let { bindReviewsSection(it, masterId) }
+                    ?: bindReviewsSectionFromProfile(master)
             } catch (e: Exception) {
                 hideProgress()
                 Toast.makeText(this@MasterDetailActivity, e.message ?: getString(R.string.load_failed), Toast.LENGTH_LONG).show()
@@ -161,11 +173,151 @@ class MasterDetailActivity : AppCompatActivity() {
     private fun bindMasterHeader(m: MasterProfileResponse) {
         binding.tvName.text = m.name.ifBlank { "—" }
         binding.tvSpecialization.text = m.specialization.ifBlank { "—" }
-        binding.tvRating.text = getString(R.string.master_rating_format, m.rating.toDouble())
+        updateReviewSummary(m.reviewCount, m.reviewsAverage)
         val loc = listOf(m.city, m.address).filter { it.isNotBlank() }.joinToString(", ")
         binding.tvLocation.text = loc.ifBlank { "—" }
         binding.tvDescription.text = m.description.ifBlank { getString(R.string.no_description) }
         binding.tvExperience.text = getString(R.string.experience_years_format, m.experienceYears.coerceAtLeast(0))
+    }
+
+    private fun updateReviewSummary(count: Int, average: Double?) {
+        if (count <= 0) {
+            binding.tvRating.text = getString(R.string.master_no_reviews)
+        } else {
+            val avg = average ?: 0.0
+            binding.tvRating.text = getString(R.string.master_reviews_summary, avg, count)
+        }
+    }
+
+    private fun bindReviewsSectionFromProfile(m: MasterProfileResponse) {
+        updateReviewSummary(m.reviewCount, m.reviewsAverage)
+        binding.tvReviewsSummary.visibility = if (m.reviewCount <= 0) View.GONE else View.VISIBLE
+        binding.tvReviewsSummary.text = getString(R.string.master_reviews_summary, m.reviewsAverage ?: 0.0, m.reviewCount)
+        binding.layoutReviewsList.removeAllViews()
+        binding.tvReviewsEmpty.visibility = View.GONE
+        binding.cardWriteReview.visibility = View.GONE
+        binding.tvReviewEligibility.visibility = View.GONE
+    }
+
+    private fun bindReviewsSection(envelope: MasterReviewsEnvelope, masterId: Int) {
+        val m = currentMaster ?: return
+        updateReviewSummary(envelope.count, envelope.average)
+        binding.tvReviewsSummary.visibility = if (envelope.count <= 0) View.GONE else View.VISIBLE
+        if (envelope.count > 0) {
+            binding.tvReviewsSummary.text = getString(
+                R.string.master_reviews_summary,
+                envelope.average ?: 0.0,
+                envelope.count,
+            )
+        }
+
+        val own = isOwnMasterProfile(m)
+        binding.cardWriteReview.visibility = View.GONE
+        binding.tvReviewEligibility.visibility = View.GONE
+
+        if (!own && (envelope.canReview || envelope.yourReview != null)) {
+            binding.cardWriteReview.visibility = View.VISIBLE
+            val prefill = envelope.yourReview
+            binding.ratingBarReview.rating = (prefill?.rating ?: 5).toFloat().coerceIn(1f, 5f)
+            binding.etReviewComment.setText(prefill?.comment.orEmpty())
+            binding.btnSubmitReview.setOnClickListener { submitReview(masterId) }
+        } else if (!own && session.getToken().isNullOrBlank()) {
+            binding.tvReviewEligibility.visibility = View.VISIBLE
+            binding.tvReviewEligibility.text = getString(R.string.review_eligibility_login)
+        } else if (!own && !envelope.canReview && envelope.yourReview == null) {
+            binding.tvReviewEligibility.visibility = View.VISIBLE
+            binding.tvReviewEligibility.text = getString(R.string.review_eligibility_wait)
+        }
+
+        binding.layoutReviewsList.removeAllViews()
+        binding.tvReviewsEmpty.visibility = View.GONE
+        envelope.results.forEach { item ->
+            binding.layoutReviewsList.addView(createReviewCard(item))
+        }
+    }
+
+    private fun createReviewCard(item: MasterReviewItem): View {
+        val card = layoutInflater.inflate(R.layout.item_master_review, binding.layoutReviewsList, false)
+        val ivAvatar = card.findViewById<ImageView>(R.id.iv_review_avatar)
+        val tvAuthor = card.findViewById<TextView>(R.id.tv_review_author)
+        val tvDate = card.findViewById<TextView>(R.id.tv_review_date)
+        val ratingRow = card.findViewById<android.widget.RatingBar>(R.id.rating_bar_review_row)
+        val tvComment = card.findViewById<TextView>(R.id.tv_review_comment)
+        val tvMore = card.findViewById<TextView>(R.id.tv_review_read_more)
+
+        val name = item.authorName.ifBlank { "—" }
+        tvAuthor.text = if (item.isVerified) {
+            "$name · ${getString(R.string.review_verified)}"
+        } else {
+            name
+        }
+        tvDate.text = formatReviewDate(item.createdAt)
+        ratingRow.rating = item.rating.toFloat().coerceIn(0f, 5f)
+
+        if (item.authorAvatar.isNotBlank()) {
+            ivAvatar.load(item.authorAvatar) {
+                crossfade(true)
+                placeholder(R.drawable.ic_nav_profile)
+                error(R.drawable.ic_nav_profile)
+            }
+        } else {
+            ivAvatar.setImageResource(R.drawable.ic_nav_profile)
+        }
+
+        val comment = item.comment.trim()
+        tvComment.text = comment.ifBlank { "—" }
+        if (comment.length > 160) {
+            tvComment.maxLines = 3
+            tvComment.ellipsize = android.text.TextUtils.TruncateAt.END
+            tvMore.visibility = View.VISIBLE
+            var expanded = false
+            tvMore.setOnClickListener {
+                expanded = !expanded
+                tvComment.maxLines = if (expanded) Int.MAX_VALUE else 3
+                tvMore.text = getString(if (expanded) R.string.review_read_less else R.string.review_read_more)
+            }
+        } else {
+            tvComment.maxLines = Int.MAX_VALUE
+            tvMore.visibility = View.GONE
+        }
+        return card
+    }
+
+    private fun formatReviewDate(iso: String): String {
+        if (iso.isBlank()) return ""
+        return try {
+            val odt = OffsetDateTime.parse(iso, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            val fmt = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+            odt.format(fmt)
+        } catch (_: Exception) {
+            iso.take(10)
+        }
+    }
+
+    private fun submitReview(masterId: Int) {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, R.string.review_eligibility_login, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val stars = binding.ratingBarReview.rating.roundToInt().coerceIn(1, 5)
+        if (stars < 1) {
+            Toast.makeText(this, R.string.review_select_stars, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val comment = binding.etReviewComment.text?.toString().orEmpty()
+        binding.btnSubmitReview.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val env = repository.postMasterReview(masterId, token, stars, comment)
+                bindReviewsSection(env, masterId)
+                Toast.makeText(this@MasterDetailActivity, R.string.review_posted, Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@MasterDetailActivity, e.message ?: getString(R.string.load_failed), Toast.LENGTH_LONG).show()
+            } finally {
+                binding.btnSubmitReview.isEnabled = true
+            }
+        }
     }
 
     private fun bindMasterPhoto(m: MasterProfileResponse) {

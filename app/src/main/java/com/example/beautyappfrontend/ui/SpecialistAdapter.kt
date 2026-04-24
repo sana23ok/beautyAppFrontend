@@ -13,6 +13,7 @@ import coil.load
 import coil.transform.CircleCropTransformation
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.domain.model.Specialist
+import java.util.Locale
 
 class SpecialistAdapter(
     private var specialists: List<Specialist>,
@@ -22,6 +23,7 @@ class SpecialistAdapter(
 
     class SpecialistViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val name: TextView         = view.findViewById(R.id.tvName)
+        val rating: TextView       = view.findViewById(R.id.tvRating)
         val location: TextView     = view.findViewById(R.id.tvLocation)
         val description: TextView  = view.findViewById(R.id.tvDescription)
         val avatar: ImageView      = view.findViewById(R.id.ivAvatar)
@@ -37,7 +39,13 @@ class SpecialistAdapter(
 
     override fun onBindViewHolder(holder: SpecialistViewHolder, position: Int) {
         val s = specialists[position]
-        holder.name.text        = s.name
+        holder.name.text = s.name
+        if (s.reviewCount > 0) {
+            holder.rating.visibility = View.VISIBLE
+            holder.rating.text = String.format(Locale.getDefault(), "★ %.1f", s.rating)
+        } else {
+            holder.rating.visibility = View.GONE
+        }
         holder.location.text    = s.location
         holder.description.text = s.description.ifBlank {
             if (s.specialization.isNotBlank()) s.specialization else "—"

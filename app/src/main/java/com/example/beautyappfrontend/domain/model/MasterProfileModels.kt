@@ -114,6 +114,8 @@ data class MasterProfileResponse(
     @SerializedName("experience_years") val experienceYears: Int = 0,
     val description: String = "",
     val rating: Float = 0f,
+    @SerializedName("review_count") val reviewCount: Int = 0,
+    @SerializedName("reviews_average") val reviewsAverage: Double? = null,
     @SerializedName("profile_photo") val profilePhoto: String = "",
     val iban: String = "",
     @SerializedName("payment_purpose") val paymentPurpose: String = "",

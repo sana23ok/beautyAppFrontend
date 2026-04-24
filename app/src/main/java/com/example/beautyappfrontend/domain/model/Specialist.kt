@@ -8,6 +8,7 @@ data class Specialist(
     val name: String,
     val specialization: String,
     val rating: Double = 0.0,
+    @SerializedName("review_count") val reviewCount: Int = 0,
     @SerializedName("profile_photo") val imageUrl: String = "",
     val city: String = "",
     val address: String = "",

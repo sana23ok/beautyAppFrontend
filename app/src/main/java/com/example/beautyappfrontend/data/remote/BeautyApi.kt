@@ -19,6 +19,8 @@ import com.example.beautyappfrontend.domain.model.MasterServiceRequest
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableResponse
 import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteRequest
+import com.example.beautyappfrontend.domain.model.MasterReviewWriteRequest
+import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
 import com.example.beautyappfrontend.domain.model.MessageResponse
 import com.example.beautyappfrontend.domain.model.RegisterRequest
@@ -174,6 +176,19 @@ interface BeautyApi {
 
     @GET("api/masters/{id}/")
     suspend fun getMasterProfile(@Path("id") id: Int): Response<MasterProfileResponse>
+
+    @GET("api/masters/{id}/reviews/")
+    suspend fun getMasterReviews(
+        @Path("id") masterId: Int,
+        @Header("Authorization") authorization: String? = null,
+    ): Response<MasterReviewsEnvelope>
+
+    @POST("api/masters/{id}/reviews/")
+    suspend fun postMasterReview(
+        @Path("id") masterId: Int,
+        @Header("Authorization") authHeader: String,
+        @Body body: MasterReviewWriteRequest,
+    ): Response<MasterReviewsEnvelope>
 
     @GET("api/bookings/available-slots/")
     suspend fun getAvailableSlots(

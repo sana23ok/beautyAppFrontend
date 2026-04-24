@@ -4,6 +4,8 @@ import android.util.Log
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
+import com.example.beautyappfrontend.domain.model.MasterReviewWriteRequest
+import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterServiceRequest
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
@@ -203,5 +205,28 @@ class MasterRepository {
         val msg = formatHttpError(response.code(), errorBody)
         Log.e(TAG, "<<< GET MASTER ERROR: $msg")
         throw Exception(msg)
+    }
+
+    suspend fun getMasterReviews(masterId: Int, token: String?): MasterReviewsEnvelope {
+        val auth = token?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
+        val response = RetrofitInstance.api.getMasterReviews(masterId, auth)
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+        val errorBody = response.errorBody()?.string()
+        throw Exception(formatHttpError(response.code(), errorBody))
+    }
+
+    suspend fun postMasterReview(masterId: Int, token: String, rating: Int, comment: String): MasterReviewsEnvelope {
+        val response = RetrofitInstance.api.postMasterReview(
+            masterId,
+            "Bearer $token",
+            MasterReviewWriteRequest(rating = rating, comment = comment.trim()),
+        )
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response from server")
+        }
+        val errorBody = response.errorBody()?.string()
+        throw Exception(formatHttpError(response.code(), errorBody))
     }
 }

@@ -85,6 +85,19 @@
     <string name="master_not_found">Master not found</string>
     <string name="load_failed">Could not load profile</string>
     <string name="master_rating_format">★ %1$.1f</string>
+    <string name="master_no_reviews">No reviews yet</string>
+    <string name="master_reviews_summary">%1$.1f ★ · %2$d reviews</string>
+    <string name="reviews_section_title">Reviews</string>
+    <string name="review_verified">Verified visit</string>
+    <string name="review_your_rating">Your rating</string>
+    <string name="review_comment_hint">Share your experience (optional)</string>
+    <string name="review_submit">Post review</string>
+    <string name="review_read_more">Read more</string>
+    <string name="review_read_less">Show less</string>
+    <string name="review_eligibility_login">Log in to leave a review after your visit.</string>
+    <string name="review_eligibility_wait">You can review after your appointment time has ended.</string>
+    <string name="review_posted">Thank you for your review</string>
+    <string name="review_select_stars">Choose a star rating</string>
     <string name="no_description">No description yet.</string>
     <string name="experience_years_format">%d years</string>
 
