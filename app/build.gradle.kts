@@ -34,6 +34,12 @@ android {
         val raw = fromLocal ?: fromGradle ?: "http://10.0.2.2:8000/"
         val apiBaseUrl = if (raw.endsWith("/")) raw else "$raw/"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+
+        // Cloudinary delivery URL prefix for outfit JPGs (no trailing slash).
+        // Upload folder should mirror paths in assets/outfits_manifest.json (e.g. Hourglass/001_….jpg).
+        // Example: https://res.cloudinary.com/YOUR_CLOUD/image/upload/w_360,q_auto,f_auto/v1/beauty_app/outfits
+        val outfitBaseUrl = localProperties.getProperty("cloudinary.outfit.base.url")?.trim().orEmpty()
+        buildConfigField("String", "CLOUDINARY_OUTFIT_BASE_URL", "\"$outfitBaseUrl\"")
     }
 
     buildTypes {

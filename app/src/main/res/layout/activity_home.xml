@@ -123,7 +123,7 @@
                     android:paddingTop="14dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="4dp"
-                    android:text="1. What is your skin undertone?"
+                    android:text="1. Hair colour"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -160,7 +160,7 @@
                     android:paddingTop="4dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="4dp"
-                    android:text="2. What is your natural hair colour?"
+                    android:text="2. Eye colour"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -197,7 +197,7 @@
                     android:paddingTop="4dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="4dp"
-                    android:text="3. How does your skin react to sun?"
+                    android:text="3. Skin tone"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -234,7 +234,7 @@
                     android:paddingTop="4dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="4dp"
-                    android:text="4. What is your eye colour?"
+                    android:text="4. Skin undertone"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -253,7 +253,7 @@
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="20dp"
+                    android:paddingBottom="16dp"
                     android:scrollbars="none">
 
                     <LinearLayout
@@ -263,19 +263,15 @@
                         android:orientation="horizontal" />
                 </HorizontalScrollView>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider_color" />
-
                 <TextView
+                    android:id="@+id/header_q5"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
-                    android:paddingTop="16dp"
+                    android:paddingTop="4dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="4dp"
-                    android:text="Body measurements (cm)"
+                    android:text="5. Torso length"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -284,108 +280,67 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
-                    android:paddingBottom="12dp"
-                    android:text="Enter your measurements in centimetres"
+                    android:paddingBottom="10dp"
+                    android:text="Select one option"
                     android:textColor="@color/text_hint"
                     android:textSize="12sp" />
 
-                <LinearLayout
+                <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:paddingBottom="4dp">
+                    android:paddingBottom="16dp"
+                    android:scrollbars="none">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:id="@+id/container_q5"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:orientation="vertical">
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingBottom="4dp"
-                            android:text="Bust"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/header_q6"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="4dp"
+                    android:text="6. Body proportion (silhouette)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-                        <EditText
-                            android:id="@+id/etBust"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_input_field"
-                            android:hint="e.g. 88"
-                            android:inputType="number"
-                            android:maxLength="3"
-                            android:padding="10dp"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_hint"
-                            android:textSize="14sp" />
-                    </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:paddingBottom="10dp"
+                    android:text="Select one option"
+                    android:textColor="@color/text_hint"
+                    android:textSize="12sp" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:scrollbars="none">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:id="@+id/container_q6"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:orientation="vertical">
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingBottom="4dp"
-                            android:text="Waist"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <EditText
-                            android:id="@+id/etWaist"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_input_field"
-                            android:hint="e.g. 66"
-                            android:inputType="number"
-                            android:maxLength="3"
-                            android:padding="10dp"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_hint"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingBottom="4dp"
-                            android:text="Hips"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <EditText
-                            android:id="@+id/etHips"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_input_field"
-                            android:hint="e.g. 94"
-                            android:inputType="number"
-                            android:maxLength="3"
-                            android:padding="10dp"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_hint"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_color" />
 
                 <Button
                     android:id="@+id/btnAnalyse"
@@ -501,6 +456,18 @@
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
+                    <TextView
+                        android:id="@+id/tvInputsSummary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="16dp"
+                        android:paddingTop="4dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="4dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -588,6 +555,82 @@
                                 android:layout_marginTop="12dp"
                                 android:textColor="@color/black"
                                 android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/card_outfit_ideas"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="16dp"
+                        android:background="@drawable/bg_result_card_guava_alt"
+                        android:elevation="4dp"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Outfit inspiration"
+                            android:textColor="@color/black"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_outfit_cloudinary_hint"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:scrollbars="none">
+
+                            <LinearLayout
+                                android:id="@+id/container_outfit_photos"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/card_detail_recommendations"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_result_card_guava"
+                        android:elevation="2dp"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Full style guide"
+                                android:textColor="@color/black"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvDetailRecommendations"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:lineSpacingMultiplier="1.2"
+                                android:textColor="@color/black"
+                                android:textSize="13sp" />
                     </LinearLayout>
 
                 </LinearLayout>
