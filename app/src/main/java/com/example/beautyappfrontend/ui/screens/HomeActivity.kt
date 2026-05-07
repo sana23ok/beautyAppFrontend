@@ -450,23 +450,12 @@ class HomeActivity : AppCompatActivity() {
         binding.tvNoResults.visibility = View.GONE
         binding.resultsDetails.visibility = View.VISIBLE
 
-        binding.tvStyleSummary.text = result.styleDescription
 
-        result.inputsSummary?.takeIf { it.isNotBlank() }?.let {
-            binding.tvInputsSummary.visibility = View.VISIBLE
-            binding.tvInputsSummary.text = it
-        } ?: run {
-            binding.tvInputsSummary.visibility = View.GONE
-        }
-
-        val seasonDisplay = result.calculatedBodyShape?.let { calc ->
-            "${colorType.season} · Body: $calc"
-        } ?: colorType.season
-        binding.tvSeasonName.text = seasonDisplay
+        binding.tvSeasonName.text = colorType.season
 
         val bodyShapeDisplay = result.calculatedBodyShape ?: bodyType.shape
         binding.tvBodyShape.text = bodyShapeDisplay
-        binding.tvBodyDescription.text = bodyType.description
+//        binding.tvBodyDescription.text = bodyType.description
 
         renderPalette(colorType.palette)
         binding.tvBestColorsText.text = colorType.advice.best?.joinToString(", ") ?: ""
@@ -488,8 +477,8 @@ class HomeActivity : AppCompatActivity() {
         }
 
         result.extendedRecommendations?.let { ext ->
-            binding.cardDetailRecommendations.visibility = View.VISIBLE
-            binding.tvDetailRecommendations.text = formatExtendedRecommendations(ext)
+//            binding.cardDetailRecommendations.visibility = View.VISIBLE
+//            binding.tvDetailRecommendations.text = formatExtendedRecommendations(ext)
         } ?: run {
             binding.cardDetailRecommendations.visibility = View.GONE
         }
@@ -600,23 +589,40 @@ class HomeActivity : AppCompatActivity() {
         binding.containerMetalColors.removeAllViews()
         val metalLower = metalText?.lowercase() ?: ""
         
-        val metalImages = when {
+        val metalData = when {
             metalLower.contains("rose") && metalLower.contains("gold") -> 
-                listOf("rose_gold", "copper", "brass")
+                listOf(
+                    "rose_gold" to "Rose Gold",
+                    "copper" to "Copper",
+                    "brass" to "Brass"
+                )
             metalLower.contains("gold") -> 
-                listOf("gold", "copper", "brass")
+                listOf(
+                    "gold" to "Gold",
+                    "copper" to "Copper",
+                    "brass" to "Brass"
+                )
             metalLower.contains("silver") -> 
-                listOf("silver", "rose_gold", "white_gold")
+                listOf(
+                    "silver" to "Silver",
+                    "rose_gold" to "Rose Gold",
+                    "white_gold" to "White Gold"
+                )
             else -> 
-                listOf("silver", "gold", "copper")
+                listOf(
+                    "silver" to "Silver",
+                    "gold" to "Gold",
+                    "copper" to "Copper"
+                )
         }
 
         val metalsBaseUrl = "https://res.cloudinary.com/dbbgctiio/image/upload/metals"
-        for (metalName in metalImages) {
-            addMetalImage(binding.containerMetalColors, "$metalsBaseUrl/$metalName.png")
+        for ((metalKey, _) in metalData) {
+            addMetalImage(binding.containerMetalColors, "$metalsBaseUrl/$metalKey.png")
         }
 
-        binding.tvMetalType.text = metalText ?: ""
+        val metalLabels = metalData.map { it.second }.joinToString(", ")
+        binding.tvMetalLabels.text = metalLabels
 
         binding.containerAccessoryChips.removeAllViews()
         shoesText?.let {

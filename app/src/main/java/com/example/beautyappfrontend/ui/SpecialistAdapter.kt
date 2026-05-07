@@ -10,7 +10,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import coil.transform.CircleCropTransformation
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.domain.model.Specialist
 import java.util.Locale
@@ -58,7 +57,6 @@ class SpecialistAdapter(
                 crossfade(true)
                 placeholder(R.drawable.ic_nav_profile)
                 error(R.drawable.ic_nav_profile)
-                transformations(CircleCropTransformation())
             }
         } else {
             val pad = (16 * holder.itemView.resources.displayMetrics.density).toInt()
