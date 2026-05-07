@@ -599,22 +599,21 @@ class HomeActivity : AppCompatActivity() {
 
         binding.containerMetalColors.removeAllViews()
         val metalLower = metalText?.lowercase() ?: ""
-        when {
-            metalLower.contains("gold") -> {
-                addColorSquare(binding.containerMetalColors, "#FFD700")
-                addColorSquare(binding.containerMetalColors, "#DAA520")
-            }
-            metalLower.contains("silver") -> {
-                addColorSquare(binding.containerMetalColors, "#C0C0C0")
-                addColorSquare(binding.containerMetalColors, "#A8A8A8")
-            }
-            metalLower.contains("rose") -> {
-                addColorSquare(binding.containerMetalColors, "#B76E79")
-                addColorSquare(binding.containerMetalColors, "#E8B4B8")
-            }
-            else -> {
-                addColorSquare(binding.containerMetalColors, "#C0C0C0")
-            }
+        
+        val metalImages = when {
+            metalLower.contains("rose") && metalLower.contains("gold") -> 
+                listOf("rose_gold", "copper", "brass")
+            metalLower.contains("gold") -> 
+                listOf("gold", "copper", "brass")
+            metalLower.contains("silver") -> 
+                listOf("silver", "rose_gold", "white_gold")
+            else -> 
+                listOf("silver", "gold", "copper")
+        }
+
+        val metalsBaseUrl = "https://res.cloudinary.com/dbbgctiio/image/upload/metals"
+        for (metalName in metalImages) {
+            addMetalImage(binding.containerMetalColors, "$metalsBaseUrl/$metalName.png")
         }
 
         binding.tvMetalType.text = metalText ?: ""
@@ -623,6 +622,25 @@ class HomeActivity : AppCompatActivity() {
         shoesText?.let {
             addRecommendationChip(binding.containerAccessoryChips, "Shoes: $it", false)
         }
+    }
+
+    private fun addMetalImage(container: LinearLayout, imageUrl: String) {
+        val size = (50 * resources.displayMetrics.density).toInt()
+        val margin = (6 * resources.displayMetrics.density).toInt()
+
+        val imageView = ImageView(this)
+        val params = LinearLayout.LayoutParams(size, size)
+        params.setMargins(margin, 0, margin, 0)
+        imageView.layoutParams = params
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+
+        imageView.load(imageUrl) {
+            crossfade(true)
+            placeholder(R.drawable.ic_launcher_foreground)
+            error(R.drawable.ic_launcher_foreground)
+        }
+
+        container.addView(imageView)
     }
 
     private fun renderRecommendedMasters(masters: List<RecommendedMaster>) {
