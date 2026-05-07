@@ -10,6 +10,15 @@ data class AppearanceTestRequest(
     val undertone: String,
     @SerializedName("torso_length") val torsoLength: String,
     @SerializedName("body_proportion") val bodyProportion: String,
+    @SerializedName("preferred_style") val preferredStyle: String? = null,
+    val goals: List<String>? = null,
+    @SerializedName("body_measurements") val bodyMeasurements: BodyMeasurements? = null,
+)
+
+data class BodyMeasurements(
+    val bust: Int?,
+    val waist: Int?,
+    val hips: Int?,
 )
 
 data class ExtendedRecommendations(
@@ -27,9 +36,20 @@ data class ExtendedRecommendations(
     @SerializedName("do_exaggerate") val doExaggerate: String = "",
 )
 
+data class RecommendedMaster(
+    val id: Int,
+    val name: String,
+    val specialization: String,
+    @SerializedName("profile_photo") val profilePhoto: String?,
+    val rating: Double,
+    val city: String?,
+)
+
 data class AppearanceTestResponse(
     @SerializedName("analysis_result") val analysisResult: AnalysisResult,
     @SerializedName("look_alike_style") val styleDescription: String,
     @SerializedName("inputs_summary") val inputsSummary: String? = null,
     @SerializedName("extended_recommendations") val extendedRecommendations: ExtendedRecommendations? = null,
+    @SerializedName("recommended_masters") val recommendedMasters: List<RecommendedMaster>? = null,
+    @SerializedName("calculated_body_shape") val calculatedBodyShape: String? = null,
 )

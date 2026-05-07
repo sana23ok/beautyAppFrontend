@@ -3,6 +3,7 @@ package com.example.beautyappfrontend.ui.screens
 import android.app.ActivityOptions
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -11,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import coil.load
@@ -18,10 +20,14 @@ import com.example.beautyappfrontend.BuildConfig
 import com.example.beautyappfrontend.databinding.ActivityHomeBinding
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
+import com.example.beautyappfrontend.domain.model.BodyMeasurements
 import com.example.beautyappfrontend.domain.model.ExtendedRecommendations
+import com.example.beautyappfrontend.domain.model.RecommendedMaster
+import com.example.beautyappfrontend.ui.OutfitGridAdapter
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.OutfitIdeasHelper
 import com.example.beautyappfrontend.utils.SessionManager
+import com.google.android.flexbox.FlexboxLayout
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
@@ -30,11 +36,12 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityHomeBinding
 
     private data class QuizOption(val label: String, val value: String)
-    private data class Question(val key: String, val options: List<QuizOption>)
+    private data class Question(val key: String, val options: List<QuizOption>, val multiSelect: Boolean = false)
 
     private val gson = Gson()
     private lateinit var sessionManager: SessionManager
     private val selectedAnswers = mutableMapOf<String, String>()
+    private val selectedGoals = mutableSetOf<String>()
     private val chipsByQuestion = mutableMapOf<String, MutableList<TextView>>()
 
     private var hasSavedResult = false
@@ -105,6 +112,30 @@ class HomeActivity : AppCompatActivity() {
                 QuizOption("Apple", "Apple"),
             ),
         ),
+        Question(
+            key = "preferred_style",
+            options = listOf(
+                QuizOption("Classic", "classic"),
+                QuizOption("Vintage", "vintage"),
+                QuizOption("Street Style", "street"),
+                QuizOption("Minimalist", "minimalist"),
+                QuizOption("Bohemian", "bohemian"),
+                QuizOption("Sporty", "sporty"),
+                QuizOption("Glamorous", "glamorous"),
+                QuizOption("Romantic", "romantic"),
+            ),
+        ),
+        Question(
+            key = "goals",
+            options = listOf(
+                QuizOption("Change hairstyle", "hairstyle"),
+                QuizOption("Improve style", "style"),
+                QuizOption("Improve makeup", "makeup"),
+                QuizOption("Improve nails", "nails"),
+                QuizOption("Overall look", "overall"),
+            ),
+            multiSelect = true,
+        ),
     )
 
     private val containers: List<LinearLayout> by lazy {
@@ -115,6 +146,8 @@ class HomeActivity : AppCompatActivity() {
             binding.containerQ4,
             binding.containerQ5,
             binding.containerQ6,
+            binding.containerQ8,
+            binding.containerQ9,
         )
     }
 
@@ -144,6 +177,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun buildQuestions() {
         questions.forEachIndexed { index, question ->
+            if (index >= containers.size) return@forEachIndexed
             val container = containers[index]
             val questionChips = mutableListOf<TextView>()
 
@@ -156,8 +190,15 @@ class HomeActivity : AppCompatActivity() {
 
                 chip.text = option.label
                 chip.tag = option.value
-                chip.setOnClickListener {
-                    selectChip(container, chip, question.key, option.value)
+
+                if (question.multiSelect) {
+                    chip.setOnClickListener {
+                        toggleMultiSelectChip(chip, question.key, option.value)
+                    }
+                } else {
+                    chip.setOnClickListener {
+                        selectChip(container, chip, question.key, option.value)
+                    }
                 }
 
                 questionChips += chip
@@ -165,6 +206,18 @@ class HomeActivity : AppCompatActivity() {
             }
 
             chipsByQuestion[question.key] = questionChips
+        }
+    }
+
+    private fun toggleMultiSelectChip(chip: TextView, questionKey: String, value: String) {
+        if (questionKey == "goals") {
+            if (selectedGoals.contains(value)) {
+                selectedGoals.remove(value)
+                chip.setBackgroundResource(R.drawable.bg_option_box)
+            } else {
+                selectedGoals.add(value)
+                chip.setBackgroundResource(R.drawable.bg_option_selected)
+            }
         }
     }
 
@@ -204,10 +257,25 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun onAnalyseClicked() {
-        val missing = questions.map { it.key }.filter { it !in selectedAnswers }
+        val requiredKeys = listOf("hair_color", "eyes_color", "skin_tone", "undertone", "torso_length", "body_proportion")
+        val missing = requiredKeys.filter { it !in selectedAnswers }
         if (missing.isNotEmpty()) {
-            Toast.makeText(this, "Please answer all questions", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Please answer all required questions (1-6)", Toast.LENGTH_SHORT).show()
             return
+        }
+
+        val bust = binding.etBust.text.toString().toIntOrNull()
+        val waist = binding.etWaist.text.toString().toIntOrNull()
+        val hips = binding.etHips.text.toString().toIntOrNull()
+
+        val bodyMeasurements = if (bust != null && waist != null && hips != null) {
+            BodyMeasurements(bust, waist, hips)
+        } else null
+
+        val calculatedBodyProp = if (bodyMeasurements != null) {
+            calculateBodyShape(bust!!, waist!!, hips!!)
+        } else {
+            selectedAnswers["body_proportion"]!!
         }
 
         val request = AppearanceTestRequest(
@@ -216,10 +284,29 @@ class HomeActivity : AppCompatActivity() {
             skinTone = selectedAnswers["skin_tone"]!!,
             undertone = selectedAnswers["undertone"]!!,
             torsoLength = selectedAnswers["torso_length"]!!,
-            bodyProportion = selectedAnswers["body_proportion"]!!,
+            bodyProportion = calculatedBodyProp,
+            preferredStyle = selectedAnswers["preferred_style"],
+            goals = selectedGoals.toList().takeIf { it.isNotEmpty() },
+            bodyMeasurements = bodyMeasurements,
         )
 
         submitToBackend(request)
+    }
+
+    private fun calculateBodyShape(bust: Int, waist: Int, hips: Int): String {
+        if (bust == 0 || hips == 0) return selectedAnswers["body_proportion"] ?: "Rectangle"
+
+        val bustHipRatio = bust.toFloat() / hips
+        val waistHipRatio = waist.toFloat() / hips
+
+        return when {
+            bustHipRatio >= 1.05 -> "Inverted Triangle"
+            bustHipRatio <= 0.90 -> "Triangle"
+            waistHipRatio < 0.75 -> "Hourglass"
+            waistHipRatio > 0.85 && bustHipRatio in 0.95..1.05 -> "Apple"
+            waistHipRatio > 0.80 -> "Rectangle"
+            else -> "Trapezoid"
+        }
     }
 
     private fun submitToBackend(request: AppearanceTestRequest) {
@@ -313,6 +400,7 @@ class HomeActivity : AppCompatActivity() {
         selectedAnswers["undertone"] = request.undertone
         selectedAnswers["torso_length"] = request.torsoLength
         selectedAnswers["body_proportion"] = request.bodyProportion
+        request.preferredStyle?.let { selectedAnswers["preferred_style"] = it }
 
         updateSelectedChip("hair_color", request.hairColor)
         updateSelectedChip("eyes_color", request.eyesColor)
@@ -320,6 +408,27 @@ class HomeActivity : AppCompatActivity() {
         updateSelectedChip("undertone", request.undertone)
         updateSelectedChip("torso_length", request.torsoLength)
         updateSelectedChip("body_proportion", request.bodyProportion)
+        request.preferredStyle?.let { updateSelectedChip("preferred_style", it) }
+
+        selectedGoals.clear()
+        request.goals?.let { goals ->
+            selectedGoals.addAll(goals)
+            goals.forEach { goal -> updateMultiSelectChip("goals", goal) }
+        }
+
+        request.bodyMeasurements?.let { m ->
+            m.bust?.let { binding.etBust.setText(it.toString()) }
+            m.waist?.let { binding.etWaist.setText(it.toString()) }
+            m.hips?.let { binding.etHips.setText(it.toString()) }
+        }
+    }
+
+    private fun updateMultiSelectChip(questionKey: String, selectedValue: String) {
+        chipsByQuestion[questionKey]?.forEach { chip ->
+            if (chip.tag == selectedValue) {
+                chip.setBackgroundResource(R.drawable.bg_option_selected)
+            }
+        }
     }
 
     private fun updateSelectedChip(questionKey: String, selectedValue: String) {
@@ -350,36 +459,202 @@ class HomeActivity : AppCompatActivity() {
             binding.tvInputsSummary.visibility = View.GONE
         }
 
-        binding.tvSeasonName.text = "${colorType.season} (${colorType.description})"
-        binding.tvBodyShape.text = "${bodyType.shape} (${bodyType.description})"
+        val seasonDisplay = result.calculatedBodyShape?.let { calc ->
+            "${colorType.season} · Body: $calc"
+        } ?: colorType.season
+        binding.tvSeasonName.text = seasonDisplay
 
-        val bestColors = colorType.advice.best?.joinToString(", ") ?: "No data"
-        binding.tvColorAdvice.text = "Best colours:\n$bestColors"
-
-        val avoidLine = colorType.advice.avoid?.joinToString(", ").orEmpty()
-        val clothesLines = bodyType.advice.bestClothes?.joinToString("\n• ").orEmpty()
-        val avoidBody = bodyType.advice.avoidClothes?.joinToString("\n• ").orEmpty()
-
-        binding.tvBodyAdvice.text = buildString {
-            append("Avoid colours:\n• ")
-            append(avoidLine.ifBlank { "—" })
-            append("\n\nWhat to wear:\n• ")
-            append(clothesLines.ifBlank { "—" })
-            if (avoidBody.isNotBlank()) {
-                append("\n\nAvoid styling:\n• ")
-                append(avoidBody)
-            }
-        }
+        val bodyShapeDisplay = result.calculatedBodyShape ?: bodyType.shape
+        binding.tvBodyShape.text = bodyShapeDisplay
+        binding.tvBodyDescription.text = bodyType.description
 
         renderPalette(colorType.palette)
+        binding.tvBestColorsText.text = colorType.advice.best?.joinToString(", ") ?: ""
+
+        renderAvoidPalette(colorType.advice.avoid)
+        binding.tvAvoidColorsText.text = colorType.advice.avoid?.joinToString(", ") ?: ""
+
+        renderWearChips(bodyType.advice.bestClothes)
+        renderAvoidChips(bodyType.advice.avoidClothes)
+
+        result.extendedRecommendations?.let { ext ->
+            renderAccessoriesCard(ext)
+        }
 
         renderOutfitIdeas(bodyType.shape)
+
+        result.recommendedMasters?.let { masters ->
+            renderRecommendedMasters(masters)
+        }
 
         result.extendedRecommendations?.let { ext ->
             binding.cardDetailRecommendations.visibility = View.VISIBLE
             binding.tvDetailRecommendations.text = formatExtendedRecommendations(ext)
         } ?: run {
             binding.cardDetailRecommendations.visibility = View.GONE
+        }
+    }
+
+    private fun renderAvoidPalette(avoidColors: List<String>?) {
+        binding.avoidPaletteContainer.removeAllViews()
+        if (avoidColors.isNullOrEmpty()) return
+
+        val avoidHexMap = mapOf(
+            "cool blue" to "#4682B4",
+            "icy blue" to "#ADD8E6",
+            "icy gray" to "#C0C0C0",
+            "jewel tones" to "#6B3FA0",
+            "black" to "#000000",
+            "orange" to "#FF8C00",
+            "mustard" to "#FFDB58",
+            "brown" to "#8B4513",
+            "muddy brown" to "#5C4033",
+            "olive" to "#808000",
+            "coral" to "#FF7F50",
+            "peach" to "#FFDAB9",
+            "warm red" to "#DC143C",
+            "earth tones" to "#8B7355",
+            "lavender" to "#E6E6FA",
+            "silver" to "#C0C0C0",
+            "emerald" to "#50C878",
+            "bright yellow" to "#FFD700",
+            "neon green" to "#39FF14",
+            "neon pink" to "#FF6EC7",
+            "grey" to "#808080",
+            "gray" to "#808080",
+            "dark grey" to "#404040",
+            "dark gray" to "#404040",
+            "burgundy" to "#800020",
+            "gold" to "#FFD700",
+            "rose gold" to "#B76E79",
+        )
+
+        for (colorName in avoidColors.take(5)) {
+            val hex = avoidHexMap[colorName.lowercase().trim()] ?: "#9E9E9E"
+            addColorSquare(binding.avoidPaletteContainer, hex)
+        }
+    }
+
+    private fun addColorSquare(container: LinearLayout, hexColor: String) {
+        val size = (40 * resources.displayMetrics.density).toInt()
+        val margin = (4 * resources.displayMetrics.density).toInt()
+        val radius = (8 * resources.displayMetrics.density)
+
+        val colorView = View(this)
+        val params = LinearLayout.LayoutParams(size, size)
+        params.setMargins(margin, 0, margin, 0)
+        colorView.layoutParams = params
+
+        val drawable = GradientDrawable()
+        drawable.shape = GradientDrawable.RECTANGLE
+        drawable.cornerRadius = radius
+        try {
+            drawable.setColor(Color.parseColor(hexColor))
+        } catch (_: Exception) {
+            drawable.setColor(Color.GRAY)
+        }
+        colorView.background = drawable
+        container.addView(colorView)
+    }
+
+    private fun renderWearChips(items: List<String>?) {
+        binding.containerWearChips.removeAllViews()
+        items?.filter { it.isNotBlank() }?.forEach { text ->
+            addRecommendationChip(binding.containerWearChips, text, false)
+        }
+    }
+
+    private fun renderAvoidChips(items: List<String>?) {
+        binding.containerAvoidChips.removeAllViews()
+        items?.filter { it.isNotBlank() }?.forEach { text ->
+            addRecommendationChip(binding.containerAvoidChips, text, true)
+        }
+    }
+
+    private fun addRecommendationChip(container: FlexboxLayout, text: String, isAvoid: Boolean) {
+        val chip = layoutInflater.inflate(R.layout.item_quiz_chip, container, false) as TextView
+        chip.text = text
+        chip.setBackgroundResource(
+            if (isAvoid) R.drawable.bg_option_box else R.drawable.bg_option_selected
+        )
+        val lp = chip.layoutParams as? FlexboxLayout.LayoutParams ?: FlexboxLayout.LayoutParams(
+            FlexboxLayout.LayoutParams.WRAP_CONTENT,
+            FlexboxLayout.LayoutParams.WRAP_CONTENT
+        )
+        lp.setMargins(0, 0, 8, 8)
+        chip.layoutParams = lp
+        container.addView(chip)
+    }
+
+    private fun renderAccessoriesCard(ext: ExtendedRecommendations) {
+        val metalText = ext.recommendedJewelryMetal.takeIf { it.isNotBlank() }
+        val shoesText = ext.recommendedShoes.takeIf { it.isNotBlank() }
+
+        if (metalText == null && shoesText == null) {
+            binding.cardAccessories.visibility = View.GONE
+            return
+        }
+
+        binding.cardAccessories.visibility = View.VISIBLE
+
+        binding.containerMetalColors.removeAllViews()
+        val metalLower = metalText?.lowercase() ?: ""
+        when {
+            metalLower.contains("gold") -> {
+                addColorSquare(binding.containerMetalColors, "#FFD700")
+                addColorSquare(binding.containerMetalColors, "#DAA520")
+            }
+            metalLower.contains("silver") -> {
+                addColorSquare(binding.containerMetalColors, "#C0C0C0")
+                addColorSquare(binding.containerMetalColors, "#A8A8A8")
+            }
+            metalLower.contains("rose") -> {
+                addColorSquare(binding.containerMetalColors, "#B76E79")
+                addColorSquare(binding.containerMetalColors, "#E8B4B8")
+            }
+            else -> {
+                addColorSquare(binding.containerMetalColors, "#C0C0C0")
+            }
+        }
+
+        binding.tvMetalType.text = metalText ?: ""
+
+        binding.containerAccessoryChips.removeAllViews()
+        shoesText?.let {
+            addRecommendationChip(binding.containerAccessoryChips, "Shoes: $it", false)
+        }
+    }
+
+    private fun renderRecommendedMasters(masters: List<RecommendedMaster>) {
+        if (masters.isEmpty()) {
+            binding.cardRecommendedMasters.visibility = View.GONE
+            return
+        }
+
+        binding.cardRecommendedMasters.visibility = View.VISIBLE
+        binding.tvMastersSubtitle.text = "Based on your preferences"
+        binding.containerMasters.removeAllViews()
+
+        for (master in masters.take(3)) {
+            val view = layoutInflater.inflate(R.layout.item_recommended_master, binding.containerMasters, false)
+            view.findViewById<TextView>(R.id.tvMasterName).text = master.name
+            view.findViewById<TextView>(R.id.tvMasterSpec).text = master.specialization
+
+            val photo = view.findViewById<ImageView>(R.id.ivMasterPhoto)
+            if (!master.profilePhoto.isNullOrBlank()) {
+                photo.load(master.profilePhoto) {
+                    crossfade(true)
+                    placeholder(R.drawable.bg_profile_photo)
+                }
+            }
+
+            view.setOnClickListener {
+                val intent = Intent(this, MasterDetailActivity::class.java)
+                intent.putExtra("master_id", master.id)
+                startActivity(intent)
+            }
+
+            binding.containerMasters.addView(view)
         }
     }
 
@@ -412,8 +687,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun renderOutfitIdeas(apiBodyShape: String) {
-        binding.containerOutfitPhotos.removeAllViews()
-
         val manifestKey = OutfitIdeasHelper.manifestKeyForShape(apiBodyShape)
         val entries =
             if (manifestKey != null) OutfitIdeasHelper.photosForShape(this, apiBodyShape) else emptyList()
@@ -430,46 +703,24 @@ class HomeActivity : AppCompatActivity() {
         if (base.isEmpty()) {
             binding.tvOutfitCloudinaryHint.visibility = View.VISIBLE
             binding.tvOutfitCloudinaryHint.text =
-                "Add cloudinary.outfit.base.url to local.properties — delivery URL prefix for outfit images (paths match assets/outfits_manifest.json)."
+                "Add cloudinary.outfit.base.url to local.properties — delivery URL prefix for outfit images."
+            binding.recyclerOutfitPhotos.visibility = View.GONE
             return
         }
 
         binding.tvOutfitCloudinaryHint.visibility = View.GONE
+        binding.recyclerOutfitPhotos.visibility = View.VISIBLE
 
         val prefix = base.trimEnd('/')
-        for (entry in entries) {
-            val row =
-                layoutInflater.inflate(R.layout.item_outfit_photo, binding.containerOutfitPhotos, false)
-            row.findViewById<TextView>(R.id.tv_outfit_title).text = entry.item
-            val iv = row.findViewById<ImageView>(R.id.iv_outfit)
-            val url = "$prefix/${entry.image}"
-            iv.load(url) {
-                crossfade(true)
-            }
-            binding.containerOutfitPhotos.addView(row)
-        }
+        binding.recyclerOutfitPhotos.layoutManager = GridLayoutManager(this, 3)
+        binding.recyclerOutfitPhotos.adapter = OutfitGridAdapter(entries, prefix)
     }
 
     private fun renderPalette(colors: List<String>) {
         binding.paletteContainer.removeAllViews()
 
         for (hexColor in colors) {
-            val colorView = View(this)
-            val params = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                1f,
-            )
-            params.setMargins(4, 0, 4, 0)
-            colorView.layoutParams = params
-
-            try {
-                colorView.setBackgroundColor(Color.parseColor(hexColor))
-            } catch (_: IllegalArgumentException) {
-                colorView.setBackgroundColor(Color.GRAY)
-            }
-
-            binding.paletteContainer.addView(colorView)
+            addColorSquare(binding.paletteContainer, hexColor)
         }
     }
 
