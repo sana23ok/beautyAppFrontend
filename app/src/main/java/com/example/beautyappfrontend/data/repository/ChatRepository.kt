@@ -4,7 +4,9 @@ import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.domain.model.ChatMessage
 import com.example.beautyappfrontend.domain.model.Conversation
 import com.example.beautyappfrontend.domain.model.ConversationDetailResponse
+import com.example.beautyappfrontend.domain.model.ChatMediaUploadResponse
 import com.example.beautyappfrontend.domain.model.SendMessageRequest
+import okhttp3.MultipartBody
 import com.example.beautyappfrontend.domain.model.StartConversationRequest
 
 class ChatRepository {
@@ -65,13 +67,31 @@ class ChatRepository {
         token: String,
         conversationId: Int,
         text: String,
+        messageType: String = "text",
+        mediaUrl: String = "",
     ): ChatMessage {
-        val request = SendMessageRequest(text = text)
+        val request = SendMessageRequest(
+            text = text,
+            messageType = messageType,
+            mediaUrl = mediaUrl,
+        )
         val response = RetrofitInstance.api.sendMessage("Bearer $token", conversationId, request)
         if (response.isSuccessful) {
             return response.body()?.let { ChatMessage.from(it) }
                 ?: throw Exception("Empty response")
         }
         throw Exception("Failed to send message: ${response.code()}")
+    }
+
+    suspend fun uploadChatMedia(
+        token: String,
+        conversationId: Int,
+        filePart: MultipartBody.Part,
+    ): ChatMediaUploadResponse {
+        val response = RetrofitInstance.api.uploadChatMedia("Bearer $token", conversationId, filePart)
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Empty response")
+        }
+        throw Exception("Failed to upload chat media: ${response.code()}")
     }
 }

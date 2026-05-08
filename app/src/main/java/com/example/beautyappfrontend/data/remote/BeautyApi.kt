@@ -22,6 +22,7 @@ import com.example.beautyappfrontend.domain.model.MasterWeekTimetableWriteReques
 import com.example.beautyappfrontend.domain.model.MasterReviewWriteRequest
 import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
+import com.example.beautyappfrontend.domain.model.ChatMediaUploadResponse
 import com.example.beautyappfrontend.domain.model.MessageResponse
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.SendMessageRequest
@@ -260,6 +261,14 @@ interface BeautyApi {
         @Path("id") conversationId: Int,
         @Body request: SendMessageRequest,
     ): Response<MessageResponse>
+
+    @Multipart
+    @POST("api/chat/conversations/{id}/media/")
+    suspend fun uploadChatMedia(
+        @Header("Authorization") authHeader: String,
+        @Path("id") conversationId: Int,
+        @Part file: MultipartBody.Part,
+    ): Response<ChatMediaUploadResponse>
 
     @POST("api/chat/conversations/{id}/read/")
     suspend fun markMessagesRead(

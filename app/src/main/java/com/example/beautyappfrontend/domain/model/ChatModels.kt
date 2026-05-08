@@ -42,7 +42,9 @@ data class MessageResponse(
     val id: Int,
     val conversation: Int,
     @SerializedName("sender_id") val senderId: Int,
-    val text: String,
+    @SerializedName("message_type") val messageType: String = "text",
+    val text: String = "",
+    @SerializedName("media_url") val mediaUrl: String? = null,
     @SerializedName("created_at") val createdAt: String = "",
     @SerializedName("is_read") val isRead: Boolean = false,
     @SerializedName("is_from_me") val isFromMe: Boolean = false,
@@ -54,7 +56,14 @@ data class StartConversationRequest(
 )
 
 data class SendMessageRequest(
-    val text: String,
+    val text: String = "",
+    @SerializedName("message_type") val messageType: String = "text",
+    @SerializedName("media_url") val mediaUrl: String = "",
+)
+
+data class ChatMediaUploadResponse(
+    val url: String = "",
+    @SerializedName("message_type") val messageType: String = "image",
 )
 
 data class UnreadTotalResponse(
@@ -98,10 +107,16 @@ data class ChatMessage(
     val text: String,
     val timestamp: String,
     val isFromMe: Boolean,
+    val messageType: String = "text",
+    val mediaUrl: String = "",
 ) {
+    val hasMedia: Boolean get() = mediaUrl.isNotBlank()
+    val isVideo: Boolean get() = messageType == "video"
+
     companion object {
         fun from(response: MessageResponse): ChatMessage {
             val time = response.createdAt.substringAfter("T").take(5)
+            val mt = response.messageType.ifBlank { "text" }
             return ChatMessage(
                 id = response.id,
                 conversationId = response.conversation,
@@ -109,6 +124,8 @@ data class ChatMessage(
                 text = response.text,
                 timestamp = time.ifBlank { "Now" },
                 isFromMe = response.isFromMe,
+                messageType = mt,
+                mediaUrl = response.mediaUrl.orEmpty(),
             )
         }
     }

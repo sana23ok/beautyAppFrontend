@@ -3,11 +3,14 @@ package com.example.beautyappfrontend.ui.screens
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +25,10 @@ import com.example.beautyappfrontend.ui.MessageAdapter
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 
 class ChatConversationActivity : AppCompatActivity() {
 
@@ -42,6 +49,10 @@ class ChatConversationActivity : AppCompatActivity() {
             refreshMessages()
             refreshHandler.postDelayed(this, REFRESH_INTERVAL_MS)
         }
+    }
+
+    private val pickChatMediaLauncher = registerForActivityResult(PickVisualMedia()) { uri ->
+        if (uri != null) uploadAndSendMedia(uri)
     }
 
     companion object {
@@ -189,7 +200,9 @@ class ChatConversationActivity : AppCompatActivity() {
         }
 
         binding.btnAttach.setOnClickListener {
-            Toast.makeText(this, "Attach file", Toast.LENGTH_SHORT).show()
+            pickChatMediaLauncher.launch(
+                PickVisualMediaRequest(PickVisualMedia.ImageAndVideo),
+            )
         }
     }
 
@@ -248,6 +261,99 @@ class ChatConversationActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun uploadAndSendMedia(uri: Uri) {
+        val token = session.getToken()
+        if (token.isNullOrBlank() || conversationId == 0) {
+            Toast.makeText(this, "Cannot send media", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                val mime = chatMimeFor(uri)
+                if (mime.isBlank()) {
+                    Toast.makeText(
+                        this@ChatConversationActivity,
+                        "Unsupported file type",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    return@launch
+                }
+                Toast.makeText(
+                    this@ChatConversationActivity,
+                    R.string.chat_media_uploading,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                val part = buildChatMediaPart(uri, mime)
+                val uploaded = chatRepository.uploadChatMedia(token, conversationId, part)
+                val caption = binding.etMessage.text?.toString()?.trim().orEmpty()
+                val message = chatRepository.sendMessage(
+                    token,
+                    conversationId,
+                    caption,
+                    uploaded.messageType,
+                    uploaded.url,
+                )
+                adapter.addMessage(message)
+                binding.etMessage.text?.clear()
+                binding.rvMessages.scrollToPosition(adapter.itemCount - 1)
+            } catch (e: Exception) {
+                Log.e(TAG, "Upload/send media failed", e)
+                Toast.makeText(
+                    this@ChatConversationActivity,
+                    e.message ?: getString(R.string.chat_media_upload_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun chatMimeFor(uri: Uri): String {
+        val t = contentResolver.getType(uri)?.trim().orEmpty()
+        val allowedImg = setOf(
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "image/heic",
+        )
+        val allowedVid = setOf(
+            "video/mp4",
+            "video/quicktime",
+            "video/webm",
+            "video/3gpp",
+        )
+        return when {
+            t in allowedImg || t in allowedVid -> t
+            t.startsWith("image/") -> "image/jpeg"
+            t.startsWith("video/") -> "video/mp4"
+            else -> ""
+        }
+    }
+
+    private fun chatExtFor(mime: String) = when (mime) {
+        "image/png" -> "png"
+        "image/webp" -> "webp"
+        "image/gif" -> "gif"
+        "image/heic" -> "heic"
+        "video/webm" -> "webm"
+        "video/3gpp" -> "3gp"
+        "video/quicktime", "video/mp4" -> "mp4"
+        else -> if (mime.startsWith("video/")) "mp4" else "jpg"
+    }
+
+    private fun buildChatMediaPart(uri: Uri, mime: String): MultipartBody.Part {
+        val ext = chatExtFor(mime)
+        val file = File(cacheDir, "chat_media_${System.currentTimeMillis()}.$ext")
+        contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: throw IllegalStateException("Could not read file")
+        val body = file.asRequestBody(mime.toMediaTypeOrNull())
+        return MultipartBody.Part.createFormData("file", file.name, body)
     }
 
     private fun setupBottomNav() {

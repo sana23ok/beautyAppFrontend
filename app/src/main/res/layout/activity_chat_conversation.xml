@@ -115,8 +115,8 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="8dp"
-            android:src="@drawable/ic_attach"
-            app:tint="@color/guava_sage" />
+            android:contentDescription="@string/chat_attach_photo_video"
+            android:src="@drawable/ic_chat_pin" />
 
         <EditText
             android:id="@+id/et_message"

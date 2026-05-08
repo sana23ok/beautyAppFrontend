@@ -140,4 +140,11 @@
     <string name="booking_prepayment_notice">This service requires a mandatory prepayment. After booking you will receive a message with payment details. Pay at least 5 hours before your visit — otherwise the master may cancel your booking.</string>
     <string name="booking_time_option">%1$s (%2$d min)</string>
     <string name="appointments_empty">No planned appointments yet.</string>
+
+    <!-- Chat -->
+    <string name="chat_attach_photo_video">Add photo or video</string>
+    <string name="chat_attachment_preview">Attachment</string>
+    <string name="chat_media_upload_failed">Could not upload media</string>
+    <string name="chat_media_uploading">Uploading…</string>
+
 </resources>
