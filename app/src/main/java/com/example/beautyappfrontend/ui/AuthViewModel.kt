@@ -35,6 +35,7 @@ class AuthViewModel : ViewModel() {
         lastName: String,
         email: String,
         password: String,
+        verificationCode: String,
         phoneNumber: String = "",
         isMaster: Boolean = false,
     ) {
@@ -46,6 +47,7 @@ class AuthViewModel : ViewModel() {
                     lastName = lastName,
                     email = email,
                     password = password,
+                    verificationCode = verificationCode,
                     phoneNumber = phoneNumber,
                     isMaster = isMaster,
                 )
@@ -56,6 +58,32 @@ class AuthViewModel : ViewModel() {
                 )
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Registration failed")
+            }
+        }
+    }
+
+    fun sendRegistrationCode(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        phoneNumber: String = "",
+        isMaster: Boolean = false,
+    ) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                val message = repository.sendRegistrationCode(
+                    firstName = firstName,
+                    lastName = lastName,
+                    email = email,
+                    password = password,
+                    phoneNumber = phoneNumber,
+                    isMaster = isMaster,
+                )
+                _authState.value = AuthState.VerificationCodeSent(message)
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Could not send verification code")
             }
         }
     }

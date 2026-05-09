@@ -3,6 +3,7 @@ package com.example.beautyappfrontend.ui.screens
 import android.content.Intent
 import android.os.Bundle
 import android.util.Patterns
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +24,7 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private val viewModel: AuthViewModel by viewModels()
     private var pendingIsMaster: Boolean = false
+    private var isWaitingForVerificationCode: Boolean = false
 
     companion object {
         private const val RC_GOOGLE_SIGN_IN = 9001
@@ -49,33 +51,34 @@ class RegisterActivity : AppCompatActivity() {
             val email    = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
             val confirm  = binding.etConfirmPassword.text.toString().trim()
+            val verificationCode = binding.etVerificationCode.text.toString().trim()
             val (firstName, lastName) = splitName(fullName)
 
-            if (fullName.isEmpty()) {
-                Toast.makeText(this, "Please enter your full name", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (password.length < 8) {
-                Toast.makeText(this, "Password must be at least 8 characters", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (password != confirm) {
-                Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            if (!validateRegistrationFields(fullName, email, password, confirm)) return@setOnClickListener
 
             pendingIsMaster = binding.cbRegisterAsMaster.isChecked
-            viewModel.register(
-                firstName = firstName,
-                lastName = lastName,
-                email = email,
-                password = password,
-                isMaster = pendingIsMaster,
-            )
+            if (!isWaitingForVerificationCode) {
+                viewModel.sendRegistrationCode(
+                    firstName = firstName,
+                    lastName = lastName,
+                    email = email,
+                    password = password,
+                    isMaster = pendingIsMaster,
+                )
+            } else {
+                if (!verificationCode.matches(Regex("\\d{6}"))) {
+                    Toast.makeText(this, "Enter the 6-digit code from your email", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                viewModel.register(
+                    firstName = firstName,
+                    lastName = lastName,
+                    email = email,
+                    password = password,
+                    verificationCode = verificationCode,
+                    isMaster = pendingIsMaster,
+                )
+            }
         }
 
         binding.btnGoogleSignup.setOnClickListener {
@@ -125,6 +128,17 @@ class RegisterActivity : AppCompatActivity() {
                     binding.btnGoogleSignup.isEnabled = false
                     binding.btnRegister.alpha = 0.6f
                 }
+                is AuthState.VerificationCodeSent -> {
+                    isWaitingForVerificationCode = true
+                    binding.etVerificationCode.visibility = View.VISIBLE
+                    binding.tvVerificationHint.visibility = View.VISIBLE
+                    binding.btnRegister.text = getString(R.string.verify_and_register)
+                    binding.btnRegister.isEnabled = true
+                    binding.btnGoogleSignup.isEnabled = true
+                    binding.btnRegister.alpha = 1f
+                    binding.etVerificationCode.requestFocus()
+                    Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
+                }
                 is AuthState.Success -> {
                     val session = SessionManager(this)
                     session.saveTokens(state.token, state.refreshToken)
@@ -153,6 +167,31 @@ class RegisterActivity : AppCompatActivity() {
         val intent = Intent(this, destination)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
+    }
+
+    private fun validateRegistrationFields(
+        fullName: String,
+        email: String,
+        password: String,
+        confirm: String,
+    ): Boolean {
+        if (fullName.isEmpty()) {
+            Toast.makeText(this, "Please enter your full name", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (password.length < 8) {
+            Toast.makeText(this, "Password must be at least 8 characters", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (password != confirm) {
+            Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return true
     }
 
     private fun splitName(fullName: String): Pair<String, String> {

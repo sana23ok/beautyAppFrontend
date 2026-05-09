@@ -12,6 +12,16 @@ data class LoginRequest(
 data class RegisterRequest(
     val email: String,
     val password: String,
+    @SerializedName("verification_code") val verificationCode: String,
+    @SerializedName("first_name") val firstName: String,
+    @SerializedName("last_name") val lastName: String,
+    @SerializedName("phone_number") val phoneNumber: String = "",
+    @SerializedName("is_master") val isMaster: Boolean = false,
+)
+
+data class SendVerificationCodeRequest(
+    val email: String,
+    val password: String,
     @SerializedName("first_name") val firstName: String,
     @SerializedName("last_name") val lastName: String,
     @SerializedName("phone_number") val phoneNumber: String = "",
@@ -61,6 +71,10 @@ data class AuthResponse(
     val authToken: String
         get() = tokens?.access ?: ""
 }
+
+data class VerificationCodeResponse(
+    val message: String = "",
+)
 
 data class AvatarUploadResponse(
     val url: String = "",

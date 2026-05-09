@@ -12,6 +12,10 @@
     <string name="full_name">Full name</string>
     <string name="password">Password</string>
     <string name="confirm_password">Confirm password</string>
+    <string name="verification_code">6-digit verification code</string>
+    <string name="verification_code_hint">We sent a 6-digit code to your email. Enter it here to finish registration.</string>
+    <string name="send_verification_code">Send verification code</string>
+    <string name="verify_and_register">Verify and register</string>
     <string name="forgot_password">Forgot password?</string>
     <string name="log_in">Log in</string>
     <string name="register">Register</string>

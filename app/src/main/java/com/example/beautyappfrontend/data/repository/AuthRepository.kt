@@ -7,6 +7,7 @@ import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.RegisterRequest
+import com.example.beautyappfrontend.domain.model.SendVerificationCodeRequest
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import okhttp3.MultipartBody
 import com.example.beautyappfrontend.utils.DebugLogger
@@ -45,12 +46,14 @@ class AuthRepository {
         lastName: String,
         email: String,
         password: String,
+        verificationCode: String,
         phoneNumber: String = "",
         isMaster: Boolean = false,
     ): AuthResponse {
         val request = RegisterRequest(
             email = email,
             password = password,
+            verificationCode = verificationCode,
             firstName = firstName,
             lastName = lastName,
             phoneNumber = phoneNumber,
@@ -72,6 +75,36 @@ class AuthRepository {
 
         val errorBody = response.errorBody()?.string() ?: "(empty)"
         Log.e(TAG, "<<< REGISTER ERROR body: $errorBody")
+        throw Exception("HTTP ${response.code()}: $errorBody")
+    }
+
+    suspend fun sendRegistrationCode(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        phoneNumber: String = "",
+        isMaster: Boolean = false,
+    ): String {
+        val request = SendVerificationCodeRequest(
+            email = email,
+            password = password,
+            firstName = firstName,
+            lastName = lastName,
+            phoneNumber = phoneNumber,
+            isMaster = isMaster,
+        )
+        Log.d(TAG, ">>> SEND REGISTRATION CODE REQUEST body: ${gson.toJson(request)}")
+
+        val response = RetrofitInstance.api.sendRegistrationCode(request)
+        Log.d(TAG, "<<< SEND REGISTRATION CODE RESPONSE HTTP ${response.code()}")
+
+        if (response.isSuccessful) {
+            return response.body()?.message ?: "Verification code sent. Please check your email."
+        }
+
+        val errorBody = response.errorBody()?.string() ?: "(empty)"
+        Log.e(TAG, "<<< SEND REGISTRATION CODE ERROR body: $errorBody")
         throw Exception("HTTP ${response.code()}: $errorBody")
     }
 

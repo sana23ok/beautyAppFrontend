@@ -123,6 +123,11 @@ class LoginActivity : AppCompatActivity() {
                     session.saveIsMaster(state.user?.isMaster == true)
                     navigateToHome()
                 }
+                is AuthState.VerificationCodeSent -> {
+                    binding.btnLogin.isEnabled = true
+                    binding.btnGoogleSignin.isEnabled = true
+                    binding.btnLogin.alpha = 1f
+                }
                 is AuthState.Error -> {
                     binding.btnLogin.isEnabled = true
                     binding.btnGoogleSignin.isEnabled = true

@@ -26,9 +26,11 @@ import com.example.beautyappfrontend.domain.model.ChatMediaUploadResponse
 import com.example.beautyappfrontend.domain.model.MessageResponse
 import com.example.beautyappfrontend.domain.model.RegisterRequest
 import com.example.beautyappfrontend.domain.model.SendMessageRequest
+import com.example.beautyappfrontend.domain.model.SendVerificationCodeRequest
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.domain.model.StartConversationRequest
 import com.example.beautyappfrontend.domain.model.TestResponse
+import com.example.beautyappfrontend.domain.model.VerificationCodeResponse
 import com.example.beautyappfrontend.domain.model.MarkReadResponse
 import com.example.beautyappfrontend.domain.model.UnreadTotalResponse
 import com.example.beautyappfrontend.domain.model.AvatarUploadResponse
@@ -73,6 +75,11 @@ interface BeautyApi {
 
     @POST("api/auth/register/")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+
+    @POST("api/auth/register/send-code/")
+    suspend fun sendRegistrationCode(
+        @Body request: SendVerificationCodeRequest,
+    ): Response<VerificationCodeResponse>
 
     @POST("api/auth/google/")
     suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<AuthResponse>
