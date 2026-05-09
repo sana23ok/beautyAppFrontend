@@ -10,7 +10,7 @@ import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.databinding.ActivityRegisterBinding
 import com.example.beautyappfrontend.ui.AuthState
 import com.example.beautyappfrontend.ui.AuthViewModel
-import com.example.beautyappfrontend.utils.DebugLogger
+import com.example.beautyappfrontend.utils.GoogleSignInHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -40,7 +40,10 @@ class RegisterActivity : AppCompatActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         observeAuthState()
+        setupClickListeners()
+    }
 
+    private fun setupClickListeners() {
         binding.btnRegister.setOnClickListener {
             val fullName = binding.etFullName.text.toString().trim()
             val email    = binding.etEmail.text.toString().trim()
@@ -76,35 +79,16 @@ class RegisterActivity : AppCompatActivity() {
         }
 
         binding.btnGoogleSignup.setOnClickListener {
-            pendingIsMaster = binding.cbRegisterAsMaster.isChecked
-            // #region agent log
-            DebugLogger.log(
-                runId = "pre-fix",
-                hypothesisId = "H1",
-                location = "RegisterActivity.kt:69",
-                message = "Launching Google sign-up",
-                data = mapOf(
-                    "clientIdIsPlaceholder" to getString(R.string.server_client_id).contains("YOUR_WEB_CLIENT_ID_HERE"),
-                ),
-            )
-            // #endregion
             if (getString(R.string.server_client_id).contains("YOUR_WEB_CLIENT_ID_HERE")) {
-                // #region agent log
-                DebugLogger.log(
-                    runId = "post-fix",
-                    hypothesisId = "H1",
-                    location = "RegisterActivity.kt:80",
-                    message = "Blocked Google sign-up because client id is placeholder",
-                    data = emptyMap(),
-                )
-                // #endregion
                 Toast.makeText(
                     this,
-                    "Google Sign-In is not configured yet. Add your real Web client ID in strings.xml.",
+                    "Add your Web client ID to local.properties → WEB_CLIENT_ID",
                     Toast.LENGTH_LONG,
                 ).show()
                 return@setOnClickListener
             }
+            pendingIsMaster = binding.cbRegisterAsMaster.isChecked
+            @Suppress("DEPRECATION")
             startActivityForResult(googleSignInClient.signInIntent, RC_GOOGLE_SIGN_IN)
         }
 
@@ -117,52 +101,19 @@ class RegisterActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == RC_GOOGLE_SIGN_IN) {
-            // #region agent log
-            DebugLogger.log(
-                runId = "pre-fix",
-                hypothesisId = "H2",
-                location = "RegisterActivity.kt:95",
-                message = "Received Google sign-up activity result",
-                data = mapOf(
-                    "resultCode" to resultCode,
-                    "hasIntentData" to (data != null),
-                ),
-            )
-            // #endregion
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val idToken = account.idToken
-                // #region agent log
-                DebugLogger.log(
-                    runId = "pre-fix",
-                    hypothesisId = "H3",
-                    location = "RegisterActivity.kt:108",
-                    message = "Processed Google account result",
-                    data = mapOf(
-                        "hasIdToken" to (idToken != null),
-                        "hasServerAuthCode" to (account.serverAuthCode != null),
-                    ),
-                )
-                // #endregion
-                if (idToken != null) {
-                    viewModel.googleSignIn(idToken)
-                } else {
-                    Toast.makeText(this, "Google Sign-In failed: missing token", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: ApiException) {
-                // #region agent log
-                DebugLogger.log(
-                    runId = "pre-fix",
-                    hypothesisId = "H2",
-                    location = "RegisterActivity.kt:120",
-                    message = "Google sign-up threw ApiException",
-                    data = mapOf("statusCode" to e.statusCode),
-                )
-                // #endregion
-                Toast.makeText(this, "Google Sign-In failed (${e.statusCode})", Toast.LENGTH_SHORT).show()
+        if (requestCode != RC_GOOGLE_SIGN_IN) return
+
+        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account.idToken
+            if (idToken != null) {
+                viewModel.googleSignIn(idToken)
+            } else {
+                Toast.makeText(this, "Google Sign-In failed: missing token", Toast.LENGTH_SHORT).show()
             }
+        } catch (e: ApiException) {
+            GoogleSignInHelper.handleApiException(this, e.statusCode)
         }
     }
 
@@ -198,11 +149,7 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun navigateAfterRegistration() {
-        val destination = if (pendingIsMaster) {
-            ProfileActivity::class.java
-        } else {
-            HomeActivity::class.java
-        }
+        val destination = if (pendingIsMaster) ProfileActivity::class.java else HomeActivity::class.java
         val intent = Intent(this, destination)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
@@ -210,8 +157,6 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun splitName(fullName: String): Pair<String, String> {
         val parts = fullName.split("\\s+".toRegex()).filter { it.isNotBlank() }
-        val firstName = parts.firstOrNull().orEmpty()
-        val lastName = parts.drop(1).joinToString(" ")
-        return firstName to lastName
+        return parts.firstOrNull().orEmpty() to parts.drop(1).joinToString(" ")
     }
 }

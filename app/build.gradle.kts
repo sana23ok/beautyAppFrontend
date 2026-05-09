@@ -40,6 +40,16 @@ android {
         // Example: https://res.cloudinary.com/YOUR_CLOUD/image/upload/w_360,q_auto,f_auto/v1/beauty_app/outfits
         val outfitBaseUrl = localProperties.getProperty("cloudinary.outfit.base.url")?.trim().orEmpty()
         buildConfigField("String", "CLOUDINARY_OUTFIT_BASE_URL", "\"$outfitBaseUrl\"")
+
+        // Google Sign-In Web OAuth client ID (requestIdToken target).
+        // Set in local.properties: WEB_CLIENT_ID=your_id.apps.googleusercontent.com
+        // Must match beauty_app_backend/.env WEB_CLIENT_ID.
+        val googleClientId = localProperties.getProperty("WEB_CLIENT_ID")?.trim().orEmpty()
+        resValue(
+            "string",
+            "server_client_id",
+            googleClientId.ifEmpty { "YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com" },
+        )
     }
 
     buildTypes {
@@ -59,6 +69,7 @@ android {
         compose = true
         viewBinding = true
         buildConfig = true
+        resValues = true
     }
 }
 
