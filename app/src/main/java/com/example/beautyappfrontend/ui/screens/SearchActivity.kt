@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.data.repository.ChatRepository
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.data.repository.SpecialistRepository
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.ui.MainViewModel
@@ -44,6 +45,24 @@ class SearchActivity : AppCompatActivity() {
 
         adapter = SpecialistAdapter(
             specialists = emptyList(),
+            favoriteCheck = { FavoriteMastersRepository.isFavorite(it) },
+            onFavoriteClick = { s ->
+                if (!session.isLoggedIn()) {
+                    Toast.makeText(this, "Please log in to save favorites", Toast.LENGTH_SHORT).show()
+                } else {
+                    lifecycleScope.launch {
+                        FavoriteMastersRepository.toggle(s.id)
+                            .onSuccess { adapter.notifyDataSetChanged() }
+                            .onFailure { e ->
+                                Toast.makeText(
+                                    this@SearchActivity,
+                                    e.message ?: "Could not update favorites",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                    }
+                }
+            },
             onViewClick = { openMasterProfile(it) },
             onMessageClick = { startConversationWith(it) },
         )
@@ -56,6 +75,19 @@ class SearchActivity : AppCompatActivity() {
 
         viewModel.specialists.observe(this) { list ->
             adapter.updateData(list)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (session.isLoggedIn()) {
+            lifecycleScope.launch {
+                FavoriteMastersRepository.sync()
+                adapter.notifyDataSetChanged()
+            }
+        } else {
+            FavoriteMastersRepository.clearCache()
+            adapter.notifyDataSetChanged()
         }
     }
 

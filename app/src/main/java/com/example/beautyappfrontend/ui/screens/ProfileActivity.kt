@@ -29,6 +29,7 @@ import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.AuthRepository
 import com.example.beautyappfrontend.data.repository.BookingRepository
 import com.example.beautyappfrontend.data.repository.ChatRepository
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityProfileBinding
 import com.example.beautyappfrontend.databinding.DialogBookingCancelReasonBinding
@@ -47,9 +48,9 @@ import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
+import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
-import com.example.beautyappfrontend.utils.FavoriteMastersStorage
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleFormat
 import com.example.beautyappfrontend.utils.MasterScheduleUi
@@ -224,28 +225,31 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun renderFavoritesSection() {
-        val storage = FavoriteMastersStorage(this)
-        val favorites = storage.list()
-        val container = binding.layoutFavoritesList
-        container.removeAllViews()
-
-        if (favorites.isEmpty()) {
+        if (!session.isLoggedIn()) {
             binding.layoutFavoritesSection.visibility = View.GONE
+            binding.layoutFavoritesList.removeAllViews()
             return
         }
-        binding.layoutFavoritesSection.visibility = View.VISIBLE
-        binding.tvFavoritesCount.text =
-            if (favorites.size == 1) "1 saved" else "${favorites.size} saved"
-
-        for (fav in favorites) {
-            container.addView(createFavoriteCard(fav, storage))
+        lifecycleScope.launch {
+            FavoriteMastersRepository.sync().onFailure {
+                Log.e(TAG, "favorite sync failed", it)
+            }
+            val favorites = FavoriteMastersRepository.snapshot()
+            binding.layoutFavoritesList.removeAllViews()
+            if (favorites.isEmpty()) {
+                binding.layoutFavoritesSection.visibility = View.GONE
+            } else {
+                binding.layoutFavoritesSection.visibility = View.VISIBLE
+                binding.tvFavoritesCount.text =
+                    if (favorites.size == 1) "1 saved" else "${favorites.size} saved"
+                for (fav in favorites) {
+                    binding.layoutFavoritesList.addView(createFavoriteCard(fav))
+                }
+            }
         }
     }
 
-    private fun createFavoriteCard(
-        fav: FavoriteMastersStorage.Summary,
-        storage: FavoriteMastersStorage,
-    ): View {
+    private fun createFavoriteCard(fav: Specialist): View {
         val card = layoutInflater.inflate(R.layout.item_favorite_master, binding.layoutFavoritesList, false)
         val ivPhoto = card.findViewById<ImageView>(R.id.ivFavPhoto)
         val tvName = card.findViewById<TextView>(R.id.tvFavName)
@@ -266,9 +270,9 @@ class ProfileActivity : AppCompatActivity() {
             tvRating.visibility = View.GONE
         }
 
-        if (!fav.profilePhoto.isNullOrBlank()) {
+        if (!fav.imageUrl.isBlank()) {
             ivPhoto.imageTintList = null
-            ivPhoto.load(fav.profilePhoto) {
+            ivPhoto.load(fav.imageUrl) {
                 crossfade(true)
                 placeholder(R.drawable.ic_nav_profile)
                 error(R.drawable.ic_nav_profile)
@@ -279,8 +283,16 @@ class ProfileActivity : AppCompatActivity() {
 
         card.setOnClickListener { openMasterDetail(fav.id) }
         btnRemove.setOnClickListener {
-            storage.remove(fav.id)
-            renderFavoritesSection()
+            lifecycleScope.launch {
+                FavoriteMastersRepository.remove(fav.id).onFailure { e ->
+                    Toast.makeText(
+                        this@ProfileActivity,
+                        e.message ?: "Could not remove favorite",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                renderFavoritesSection()
+            }
         }
         return card
     }
@@ -384,6 +396,7 @@ class ProfileActivity : AppCompatActivity() {
                 .setMessage("Are you sure you want to log out?")
                 .setPositiveButton("Log out") { _, _ ->
                     session.clearSession()
+                    FavoriteMastersRepository.clearCache()
                     val intent = Intent(this, LoginActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
@@ -1732,6 +1745,7 @@ class ProfileActivity : AppCompatActivity() {
                     try {
                         authRepository.deleteCurrentUser(token)
                         session.clearSession()
+                        FavoriteMastersRepository.clearCache()
                         onDone()
                         val intent = Intent(this@ProfileActivity, LoginActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

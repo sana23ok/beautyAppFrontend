@@ -23,3 +23,11 @@ data class TestResponse(
     val message: String,
     val status: String
 )
+
+data class FavoriteToggleRequest(
+    @SerializedName("master_id") val masterId: Int,
+)
+
+data class FavoriteToggleResponse(
+    @SerializedName("is_favorite") val isFavorite: Boolean,
+)

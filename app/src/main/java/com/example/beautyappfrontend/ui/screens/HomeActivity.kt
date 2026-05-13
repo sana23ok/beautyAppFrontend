@@ -27,7 +27,7 @@ import com.example.beautyappfrontend.domain.model.RecommendedMaster
 import com.example.beautyappfrontend.ui.OutfitGridAdapter
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.ClothingColorSwatches
-import com.example.beautyappfrontend.utils.FavoriteMastersStorage
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.utils.OutfitIdeasHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.example.beautyappfrontend.utils.bodyShapeLabelForDisplay
@@ -45,7 +45,6 @@ class HomeActivity : AppCompatActivity() {
 
     private val gson = Gson()
     private lateinit var sessionManager: SessionManager
-    private lateinit var favoriteMasters: FavoriteMastersStorage
     private val selectedAnswers = mutableMapOf<String, String>()
     private val selectedGoals = mutableSetOf<String>()
     private val chipsByQuestion = mutableMapOf<String, MutableList<TextView>>()
@@ -163,7 +162,6 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         sessionManager = SessionManager(this)
-        favoriteMasters = FavoriteMastersStorage(this)
 
         buildQuestions()
         setupSectionToggles()
@@ -186,8 +184,18 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         ChatBadgeHelper.updateBadge(binding.bottomNav, sessionManager.getToken(), lifecycleScope)
-        if (currentMasters.isNotEmpty()) {
-            renderRecommendedMasters(currentMasters)
+        if (sessionManager.isLoggedIn()) {
+            lifecycleScope.launch {
+                FavoriteMastersRepository.sync()
+                if (currentMasters.isNotEmpty()) {
+                    renderRecommendedMasters(currentMasters)
+                }
+            }
+        } else {
+            FavoriteMastersRepository.clearCache()
+            if (currentMasters.isNotEmpty()) {
+                renderRecommendedMasters(currentMasters)
+            }
         }
     }
 
@@ -700,19 +708,23 @@ class HomeActivity : AppCompatActivity() {
         }
 
         val heart = view.findViewById<ImageButton>(R.id.btnMasterFavorite)
-        updateHeart(heart, favoriteMasters.isFavorite(master.id))
+        updateHeart(heart, FavoriteMastersRepository.isFavorite(master.id))
         heart.setOnClickListener {
-            val now = favoriteMasters.toggle(
-                FavoriteMastersStorage.Summary(
-                    id = master.id,
-                    name = master.name,
-                    specialization = master.specialization,
-                    profilePhoto = master.profilePhoto,
-                    city = master.city,
-                    rating = master.rating,
-                ),
-            )
-            updateHeart(heart, now)
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Please log in to save favorites", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            lifecycleScope.launch {
+                FavoriteMastersRepository.toggle(master.id)
+                    .onSuccess { isFav -> updateHeart(heart, isFav) }
+                    .onFailure { e ->
+                        Toast.makeText(
+                            this@HomeActivity,
+                            e.message ?: "Could not update favorites",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+            }
         }
 
         view.setOnClickListener {
@@ -727,6 +739,7 @@ class HomeActivity : AppCompatActivity() {
         button.setImageResource(
             if (isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline,
         )
+        button.imageTintList = null
     }
 
     private fun formatExtendedRecommendations(ext: ExtendedRecommendations): String = buildString {

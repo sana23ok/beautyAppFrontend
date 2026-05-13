@@ -4,6 +4,8 @@ import com.example.beautyappfrontend.domain.model.AnalysisResponse
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
+import com.example.beautyappfrontend.domain.model.FavoriteToggleRequest
+import com.example.beautyappfrontend.domain.model.FavoriteToggleResponse
 import com.example.beautyappfrontend.domain.model.AuthUserInfo
 import com.example.beautyappfrontend.domain.model.AvailableSlotsResponse
 import com.example.beautyappfrontend.domain.model.BookingRequest
@@ -109,6 +111,23 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Part photo: MultipartBody.Part,
     ): Response<AvatarUploadResponse>
+
+    @GET("api/auth/favorite-masters/")
+    suspend fun getFavoriteMasters(
+        @Header("Authorization") authHeader: String,
+    ): Response<List<Specialist>>
+
+    @POST("api/auth/favorite-masters/toggle/")
+    suspend fun toggleFavoriteMaster(
+        @Header("Authorization") authHeader: String,
+        @Body body: FavoriteToggleRequest,
+    ): Response<FavoriteToggleResponse>
+
+    @DELETE("api/auth/favorite-masters/{master_id}/")
+    suspend fun deleteFavoriteMaster(
+        @Header("Authorization") authHeader: String,
+        @Path("master_id") masterId: Int,
+    ): Response<Unit>
 
     @POST("api/masters/")
     suspend fun createMasterProfile(

@@ -7,7 +7,9 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.beautyappfrontend.R
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.databinding.ActivityRegisterBinding
 import com.example.beautyappfrontend.ui.AuthState
 import com.example.beautyappfrontend.ui.AuthViewModel
@@ -17,6 +19,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import kotlinx.coroutines.launch
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -144,6 +147,9 @@ class RegisterActivity : AppCompatActivity() {
                     session.saveTokens(state.token, state.refreshToken)
                     session.saveUserInfo(state.user)
                     session.saveIsMaster(state.user?.isMaster == true || pendingIsMaster)
+                    lifecycleScope.launch {
+                        FavoriteMastersRepository.sync()
+                    }
                     navigateAfterRegistration()
                 }
                 is AuthState.Error -> {

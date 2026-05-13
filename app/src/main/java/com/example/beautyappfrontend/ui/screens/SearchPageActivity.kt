@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.data.repository.ChatRepository
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.databinding.ActivitySearchPageBinding
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.ui.SpecialistAdapter
@@ -66,13 +67,40 @@ class SearchPageActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
+        if (session.isLoggedIn()) {
+            lifecycleScope.launch {
+                FavoriteMastersRepository.sync()
+                adapter.notifyDataSetChanged()
+            }
+        } else {
+            FavoriteMastersRepository.clearCache()
+            adapter.notifyDataSetChanged()
+        }
     }
 
     // ── RecyclerView ──────────────────────────────────────────────────────────
 
     private fun setupRecyclerView() {
         adapter = SpecialistAdapter(
-            specialists    = emptyList(),
+            specialists     = emptyList(),
+            favoriteCheck   = { FavoriteMastersRepository.isFavorite(it) },
+            onFavoriteClick = { s ->
+                if (!session.isLoggedIn()) {
+                    Toast.makeText(this, "Please log in to save favorites", Toast.LENGTH_SHORT).show()
+                } else {
+                    lifecycleScope.launch {
+                        FavoriteMastersRepository.toggle(s.id)
+                            .onSuccess { adapter.notifyDataSetChanged() }
+                            .onFailure { e ->
+                                Toast.makeText(
+                                    this@SearchPageActivity,
+                                    e.message ?: "Could not update favorites",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                    }
+                }
+            },
             onViewClick    = { s ->
                 openMasterProfile(s)
             },

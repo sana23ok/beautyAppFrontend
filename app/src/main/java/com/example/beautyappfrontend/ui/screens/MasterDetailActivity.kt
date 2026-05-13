@@ -29,6 +29,7 @@ import kotlinx.coroutines.async
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.BookingRepository
 import com.example.beautyappfrontend.data.repository.ChatRepository
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.data.repository.MasterRepository
 import com.example.beautyappfrontend.databinding.ActivityMasterDetailBinding
 import com.example.beautyappfrontend.databinding.DialogBookingAppointmentBinding
@@ -39,7 +40,6 @@ import com.example.beautyappfrontend.domain.model.MasterReviewItem
 import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
-import com.example.beautyappfrontend.utils.FavoriteMastersStorage
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
@@ -109,6 +109,27 @@ class MasterDetailActivity : AppCompatActivity() {
         loadMaster(masterId)
     }
 
+    override fun onResume() {
+        super.onResume()
+        val m = currentMaster ?: return
+        if (session.isLoggedIn()) {
+            lifecycleScope.launch {
+                FavoriteMastersRepository.sync()
+                renderFavoriteIcon(FavoriteMastersRepository.isFavorite(m.id))
+            }
+        } else {
+            FavoriteMastersRepository.clearCache()
+            renderFavoriteIcon(false)
+        }
+    }
+
+    private fun renderFavoriteIcon(isFav: Boolean) {
+        binding.btnFavorite.setImageResource(
+            if (isFav) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline,
+        )
+        binding.btnFavorite.imageTintList = null
+    }
+
     private fun loadMaster(masterId: Int) {
         lifecycleScope.launch {
             try {
@@ -129,6 +150,11 @@ class MasterDetailActivity : AppCompatActivity() {
                 }
                 val master = repository.getMasterProfile(masterId)
                 currentMaster = master
+                if (session.isLoggedIn()) {
+                    FavoriteMastersRepository.sync()
+                } else {
+                    FavoriteMastersRepository.clearCache()
+                }
                 bindMaster(master)
                 // Reveal the content as soon as profile data is on screen, even
                 // before the bookings overlay is ready — prevents the long blank
@@ -179,26 +205,23 @@ class MasterDetailActivity : AppCompatActivity() {
     }
 
     private fun bindFavoriteButton(m: MasterProfileResponse) {
-        val favorites = FavoriteMastersStorage(this)
-        fun render(isFav: Boolean) {
-            binding.btnFavorite.setImageResource(
-                if (isFav) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline,
-            )
-            binding.btnFavorite.imageTintList = null
-        }
-        render(favorites.isFavorite(m.id))
+        renderFavoriteIcon(FavoriteMastersRepository.isFavorite(m.id))
         binding.btnFavorite.setOnClickListener {
-            val now = favorites.toggle(
-                FavoriteMastersStorage.Summary(
-                    id = m.id,
-                    name = m.name,
-                    specialization = m.specialization,
-                    profilePhoto = m.profilePhoto,
-                    city = m.city,
-                    rating = m.reviewsAverage ?: 0.0,
-                ),
-            )
-            render(now)
+            if (!session.isLoggedIn()) {
+                Toast.makeText(this, "Please log in to save favorites", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            lifecycleScope.launch {
+                FavoriteMastersRepository.toggle(m.id)
+                    .onSuccess { isFav -> renderFavoriteIcon(isFav) }
+                    .onFailure { e ->
+                        Toast.makeText(
+                            this@MasterDetailActivity,
+                            e.message ?: "Could not update favorites",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+            }
         }
     }
 

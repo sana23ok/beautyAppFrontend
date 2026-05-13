@@ -6,16 +6,19 @@ import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.databinding.ActivityLoginBinding
 import com.example.beautyappfrontend.ui.AuthState
 import com.example.beautyappfrontend.ui.AuthViewModel
+import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
 import com.example.beautyappfrontend.utils.GoogleSignInHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
@@ -121,6 +124,9 @@ class LoginActivity : AppCompatActivity() {
                     session.saveTokens(state.token, state.refreshToken)
                     session.saveUserInfo(state.user)
                     session.saveIsMaster(state.user?.isMaster == true)
+                    lifecycleScope.launch {
+                        FavoriteMastersRepository.sync()
+                    }
                     navigateToHome()
                 }
                 is AuthState.VerificationCodeSent -> {
