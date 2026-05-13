@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -25,12 +26,15 @@ import com.example.beautyappfrontend.domain.model.ExtendedRecommendations
 import com.example.beautyappfrontend.domain.model.RecommendedMaster
 import com.example.beautyappfrontend.ui.OutfitGridAdapter
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
+import com.example.beautyappfrontend.utils.ClothingColorSwatches
+import com.example.beautyappfrontend.utils.FavoriteMastersStorage
 import com.example.beautyappfrontend.utils.OutfitIdeasHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.example.beautyappfrontend.utils.bodyShapeLabelForDisplay
 import com.google.android.flexbox.FlexboxLayout
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class HomeActivity : AppCompatActivity() {
 
@@ -41,6 +45,7 @@ class HomeActivity : AppCompatActivity() {
 
     private val gson = Gson()
     private lateinit var sessionManager: SessionManager
+    private lateinit var favoriteMasters: FavoriteMastersStorage
     private val selectedAnswers = mutableMapOf<String, String>()
     private val selectedGoals = mutableSetOf<String>()
     private val chipsByQuestion = mutableMapOf<String, MutableList<TextView>>()
@@ -48,6 +53,20 @@ class HomeActivity : AppCompatActivity() {
     private var hasSavedResult = false
     private var isTestExpanded = true
     private var isResultsExpanded = false
+
+    /** Cache for collapse/expand of Outfit Ideas card. */
+    private var outfitIdeasFull: List<OutfitIdeasHelper.OutfitPhotoEntry> = emptyList()
+    private var outfitsExpanded: Boolean = false
+    private var currentMasters: List<RecommendedMaster> = emptyList()
+
+    companion object {
+        private const val PREFS_NAME = "appearance_test_prefs"
+        private const val KEY_LAST_REQUEST = "last_request_v2"
+        private const val KEY_LAST_RESULT = "last_result_v2"
+
+        /** Initial grid size for the Outfit Ideas card; user can expand to full set. */
+        private const val OUTFIT_PREVIEW_COUNT = 6
+    }
 
     /** CSV labels must match backend recommendations.csv exactly. */
     private val questions = listOf(
@@ -144,12 +163,18 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         sessionManager = SessionManager(this)
+        favoriteMasters = FavoriteMastersStorage(this)
 
         buildQuestions()
         setupSectionToggles()
         restoreSavedState()
 
         binding.btnAnalyse.setOnClickListener { onAnalyseClicked() }
+
+        binding.btnExploreMoreLooks.setOnClickListener {
+            outfitsExpanded = !outfitsExpanded
+            renderOutfitsGrid()
+        }
 
         binding.ivProfileIcon.setOnClickListener {
             navigateTo(ProfileActivity::class.java)
@@ -161,6 +186,9 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         ChatBadgeHelper.updateBadge(binding.bottomNav, sessionManager.getToken(), lifecycleScope)
+        if (currentMasters.isNotEmpty()) {
+            renderRecommendedMasters(currentMasters)
+        }
     }
 
     private fun buildQuestions() {
@@ -440,15 +468,29 @@ class HomeActivity : AppCompatActivity() {
 
         binding.tvSeasonName.text = colorType.season
 
+        // Use the season-description blurb (do_colours) right under the season name
+        // so the card matches the design mock: "Light Summer" followed by a tone
+        // description, *then* the "Best colours for you" row.
+        val descriptionText = colorType.doColours?.trim().orEmpty()
+        binding.tvSeasonDescription.text = descriptionText
+        binding.tvSeasonDescription.visibility =
+            if (descriptionText.isEmpty()) View.GONE else View.VISIBLE
+        binding.tvDoColours.visibility = View.GONE
+
         val rawShape = result.calculatedBodyShape ?: bodyType.shape
         binding.tvBodyShape.text = bodyShapeLabelForDisplay(rawShape)
-//        binding.tvBodyDescription.text = bodyType.description
 
-        renderPalette(colorType.palette)
-        binding.tvBestColorsText.text = colorType.advice.best?.joinToString(", ") ?: ""
+        val bestRaw = colorType.advice.best.orEmpty()
+        binding.tvBestColorsText.text = bestRaw.joinToString(", ") { ClothingColorSwatches.titleCase(it) }
+        renderClothingSwatchRow(binding.paletteContainer, bestRaw)
 
-        renderAvoidPalette(colorType.advice.avoid)
-        binding.tvAvoidColorsText.text = colorType.advice.avoid?.joinToString(", ") ?: ""
+        val avoidRaw = colorType.advice.avoid.orEmpty()
+        binding.tvAvoidColorsText.text = avoidRaw.joinToString(", ") { ClothingColorSwatches.titleCase(it) }
+        renderClothingSwatchRow(binding.avoidPaletteContainer, avoidRaw)
+
+        val dontText = colorType.dontColours?.trim().orEmpty()
+        binding.tvDontColours.text = dontText
+        binding.tvDontColours.visibility = if (dontText.isEmpty()) View.GONE else View.VISIBLE
 
         renderWearChips(bodyType.advice.bestClothes)
         renderAvoidChips(bodyType.advice.avoidClothes)
@@ -471,43 +513,11 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderAvoidPalette(avoidColors: List<String>?) {
-        binding.avoidPaletteContainer.removeAllViews()
-        if (avoidColors.isNullOrEmpty()) return
-
-        val avoidHexMap = mapOf(
-            "cool blue" to "#4682B4",
-            "icy blue" to "#ADD8E6",
-            "icy gray" to "#C0C0C0",
-            "jewel tones" to "#6B3FA0",
-            "black" to "#000000",
-            "orange" to "#FF8C00",
-            "mustard" to "#FFDB58",
-            "brown" to "#8B4513",
-            "muddy brown" to "#5C4033",
-            "olive" to "#808000",
-            "coral" to "#FF7F50",
-            "peach" to "#FFDAB9",
-            "warm red" to "#DC143C",
-            "earth tones" to "#8B7355",
-            "lavender" to "#E6E6FA",
-            "silver" to "#C0C0C0",
-            "emerald" to "#50C878",
-            "bright yellow" to "#FFD700",
-            "neon green" to "#39FF14",
-            "neon pink" to "#FF6EC7",
-            "grey" to "#808080",
-            "gray" to "#808080",
-            "dark grey" to "#404040",
-            "dark gray" to "#404040",
-            "burgundy" to "#800020",
-            "gold" to "#FFD700",
-            "rose gold" to "#B76E79",
-        )
-
-        for (colorName in avoidColors.take(5)) {
-            val hex = avoidHexMap[colorName.lowercase().trim()] ?: "#9E9E9E"
-            addColorSquare(binding.avoidPaletteContainer, hex)
+    private fun renderClothingSwatchRow(container: LinearLayout, names: List<String>) {
+        container.removeAllViews()
+        if (names.isEmpty()) return
+        for (name in names) {
+            addColorSquare(container, ClothingColorSwatches.hexFor(name))
         }
     }
 
@@ -548,14 +558,23 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun addRecommendationChip(container: FlexboxLayout, text: String, isAvoid: Boolean) {
-        val chip = layoutInflater.inflate(R.layout.item_quiz_chip, container, false) as TextView
-        chip.text = text
-        chip.setBackgroundResource(
-            if (isAvoid) R.drawable.bg_option_box else R.drawable.bg_option_selected
-        )
-        val lp = chip.layoutParams as? FlexboxLayout.LayoutParams ?: FlexboxLayout.LayoutParams(
+        val chip = TextView(this).apply {
+            this.text = text
+            setBackgroundResource(if (isAvoid) R.drawable.bg_chip_avoid else R.drawable.bg_chip_do)
+            setTextColor(
+                if (isAvoid) Color.parseColor("#5C1F1B") else Color.parseColor("#2F4D1E"),
+            )
+            textSize = 13f
+            val padH = (12 * resources.displayMetrics.density).toInt()
+            val padV = (8 * resources.displayMetrics.density).toInt()
+            setPadding(padH, padV, padH, padV)
+            val iconRes = if (isAvoid) R.drawable.ic_warning_triangle else R.drawable.ic_check_circle
+            setCompoundDrawablesWithIntrinsicBounds(iconRes, 0, 0, 0)
+            compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
+        }
+        val lp = FlexboxLayout.LayoutParams(
             FlexboxLayout.LayoutParams.WRAP_CONTENT,
-            FlexboxLayout.LayoutParams.WRAP_CONTENT
+            FlexboxLayout.LayoutParams.WRAP_CONTENT,
         )
         lp.setMargins(0, 0, 8, 8)
         chip.layoutParams = lp
@@ -637,36 +656,77 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun renderRecommendedMasters(masters: List<RecommendedMaster>) {
+        currentMasters = masters
         if (masters.isEmpty()) {
             binding.cardRecommendedMasters.visibility = View.GONE
             return
         }
 
         binding.cardRecommendedMasters.visibility = View.VISIBLE
-        binding.tvMastersSubtitle.text = "Based on your preferences"
+        binding.tvMastersSubtitle.text = "Curated based on your preferences"
         binding.containerMasters.removeAllViews()
 
-        for (master in masters.take(3)) {
-            val view = layoutInflater.inflate(R.layout.item_recommended_master, binding.containerMasters, false)
-            view.findViewById<TextView>(R.id.tvMasterName).text = master.name
-            view.findViewById<TextView>(R.id.tvMasterSpec).text = master.specialization
-
-            val photo = view.findViewById<ImageView>(R.id.ivMasterPhoto)
-            if (!master.profilePhoto.isNullOrBlank()) {
-                photo.load(master.profilePhoto) {
-                    crossfade(true)
-                    placeholder(R.drawable.bg_profile_photo)
-                }
-            }
-
-            view.setOnClickListener {
-                val intent = Intent(this, MasterDetailActivity::class.java)
-                intent.putExtra("master_id", master.id)
-                startActivity(intent)
-            }
-
-            binding.containerMasters.addView(view)
+        val capped = masters.take(12)
+        for (master in capped) {
+            binding.containerMasters.addView(createMasterCard(master))
         }
+    }
+
+    private fun createMasterCard(master: RecommendedMaster): View {
+        val view = layoutInflater.inflate(R.layout.item_recommended_master, binding.containerMasters, false)
+        view.findViewById<TextView>(R.id.tvMasterName).text = master.name
+        view.findViewById<TextView>(R.id.tvMasterSpec).text =
+            master.specialization.ifBlank { master.city.orEmpty() }
+
+        val photo = view.findViewById<ImageView>(R.id.ivMasterPhoto)
+        if (!master.profilePhoto.isNullOrBlank()) {
+            photo.load(master.profilePhoto) {
+                crossfade(true)
+                placeholder(R.drawable.bg_profile_photo)
+            }
+        } else {
+            photo.setImageResource(R.drawable.ic_nav_profile)
+        }
+
+        // Display rating as a percentage badge to mirror the screenshot mock-up:
+        // a 5.0★ master → 100%, 4.0★ → 80%, etc. Hide for no-rating masters.
+        val ratingPill = view.findViewById<TextView>(R.id.tvMasterRating)
+        val pct = (master.rating.coerceIn(0.0, 5.0) / 5.0 * 100.0).roundToInt()
+        if (master.rating > 0.0) {
+            ratingPill.visibility = View.VISIBLE
+            ratingPill.text = "\u2605 $pct%"
+        } else {
+            ratingPill.visibility = View.GONE
+        }
+
+        val heart = view.findViewById<ImageButton>(R.id.btnMasterFavorite)
+        updateHeart(heart, favoriteMasters.isFavorite(master.id))
+        heart.setOnClickListener {
+            val now = favoriteMasters.toggle(
+                FavoriteMastersStorage.Summary(
+                    id = master.id,
+                    name = master.name,
+                    specialization = master.specialization,
+                    profilePhoto = master.profilePhoto,
+                    city = master.city,
+                    rating = master.rating,
+                ),
+            )
+            updateHeart(heart, now)
+        }
+
+        view.setOnClickListener {
+            val intent = Intent(this, MasterDetailActivity::class.java)
+            intent.putExtra(MasterDetailActivity.EXTRA_MASTER_ID, master.id)
+            startActivity(intent)
+        }
+        return view
+    }
+
+    private fun updateHeart(button: ImageButton, isFavorite: Boolean) {
+        button.setImageResource(
+            if (isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline,
+        )
     }
 
     private fun formatExtendedRecommendations(ext: ExtendedRecommendations): String = buildString {
@@ -705,34 +765,46 @@ class HomeActivity : AppCompatActivity() {
         if (manifestKey == null || entries.isEmpty()) {
             binding.cardOutfitIdeas.visibility = View.GONE
             binding.tvOutfitCloudinaryHint.visibility = View.GONE
+            binding.btnExploreMoreLooks.visibility = View.GONE
+            outfitIdeasFull = emptyList()
             return
         }
 
-        val base = BuildConfig.CLOUDINARY_OUTFIT_BASE_URL.trim()
         binding.cardOutfitIdeas.visibility = View.VISIBLE
-
+        val base = BuildConfig.CLOUDINARY_OUTFIT_BASE_URL.trim()
         if (base.isEmpty()) {
             binding.tvOutfitCloudinaryHint.visibility = View.VISIBLE
             binding.tvOutfitCloudinaryHint.text =
                 "Add cloudinary.outfit.base.url to local.properties — delivery URL prefix for outfit images."
             binding.recyclerOutfitPhotos.visibility = View.GONE
+            binding.btnExploreMoreLooks.visibility = View.GONE
             return
         }
 
         binding.tvOutfitCloudinaryHint.visibility = View.GONE
         binding.recyclerOutfitPhotos.visibility = View.VISIBLE
 
-        val prefix = base.trimEnd('/')
-        binding.recyclerOutfitPhotos.layoutManager = GridLayoutManager(this, 3)
-        binding.recyclerOutfitPhotos.adapter = OutfitGridAdapter(entries, prefix)
+        outfitIdeasFull = entries
+        outfitsExpanded = false
+        renderOutfitsGrid()
     }
 
-    private fun renderPalette(colors: List<String>) {
-        binding.paletteContainer.removeAllViews()
+    private fun renderOutfitsGrid() {
+        val entries = outfitIdeasFull
+        if (entries.isEmpty()) return
 
-        for (hexColor in colors) {
-            addColorSquare(binding.paletteContainer, hexColor)
-        }
+        val visible =
+            if (outfitsExpanded || entries.size <= OUTFIT_PREVIEW_COUNT) entries
+            else entries.take(OUTFIT_PREVIEW_COUNT)
+
+        val base = BuildConfig.CLOUDINARY_OUTFIT_BASE_URL.trim().trimEnd('/')
+        binding.recyclerOutfitPhotos.layoutManager = GridLayoutManager(this, 3)
+        binding.recyclerOutfitPhotos.adapter = OutfitGridAdapter(visible, base)
+
+        val canExpand = entries.size > OUTFIT_PREVIEW_COUNT
+        binding.btnExploreMoreLooks.visibility = if (canExpand) View.VISIBLE else View.GONE
+        binding.btnExploreMoreLooks.text =
+            if (outfitsExpanded) "Show Less" else "Explore More Looks"
     }
 
     private fun setupBottomNav() {
@@ -762,12 +834,6 @@ class HomeActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         val options = ActivityOptions.makeCustomAnimation(this, 0, 0)
         startActivity(intent, options.toBundle())
-    }
-
-    companion object {
-        private const val PREFS_NAME = "appearance_test_prefs"
-        private const val KEY_LAST_REQUEST = "last_request"
-        private const val KEY_LAST_RESULT = "last_result"
     }
 
     private fun getCurrentUserKey(): String {

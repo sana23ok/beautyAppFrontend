@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -12,12 +13,15 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.domain.model.Specialist
+import com.example.beautyappfrontend.utils.FavoriteMastersStorage
 import java.util.Locale
 
 class SpecialistAdapter(
     private var specialists: List<Specialist>,
     private val onViewClick: ((Specialist) -> Unit)? = null,
-    private val onMessageClick: ((Specialist) -> Unit)? = null
+    private val onMessageClick: ((Specialist) -> Unit)? = null,
+    /** Optional callback so callers can refresh local UI state after a toggle. */
+    private val onFavoriteChanged: ((Specialist, Boolean) -> Unit)? = null,
 ) : RecyclerView.Adapter<SpecialistAdapter.SpecialistViewHolder>() {
 
     class SpecialistViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -28,6 +32,7 @@ class SpecialistAdapter(
         val avatar: ImageView      = view.findViewById(R.id.ivAvatar)
         val btnView: Button        = view.findViewById(R.id.btnView)
         val btnMessage: Button     = view.findViewById(R.id.btnMessage)
+        val btnFavorite: ImageButton = view.findViewById(R.id.btnFavorite)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SpecialistViewHolder {
@@ -38,6 +43,9 @@ class SpecialistAdapter(
 
     override fun onBindViewHolder(holder: SpecialistViewHolder, position: Int) {
         val s = specialists[position]
+        val ctx = holder.itemView.context
+        val favorites = FavoriteMastersStorage(ctx)
+
         holder.name.text = s.name
         if (s.reviewCount > 0) {
             holder.rating.visibility = View.VISIBLE
@@ -69,6 +77,29 @@ class SpecialistAdapter(
 
         holder.btnView.setOnClickListener    { onViewClick?.invoke(s) }
         holder.btnMessage.setOnClickListener { onMessageClick?.invoke(s) }
+
+        renderHeart(holder.btnFavorite, favorites.isFavorite(s.id))
+        holder.btnFavorite.setOnClickListener {
+            val now = favorites.toggle(
+                FavoriteMastersStorage.Summary(
+                    id = s.id,
+                    name = s.name,
+                    specialization = s.specialization,
+                    profilePhoto = s.imageUrl,
+                    city = s.city,
+                    rating = s.rating,
+                ),
+            )
+            renderHeart(holder.btnFavorite, now)
+            onFavoriteChanged?.invoke(s, now)
+        }
+    }
+
+    private fun renderHeart(button: ImageButton, isFavorite: Boolean) {
+        button.setImageResource(
+            if (isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline,
+        )
+        button.imageTintList = null
     }
 
     override fun getItemCount() = specialists.size

@@ -26,7 +26,9 @@ data class ColorType(
     val season: String,
     val description: String,
     val palette: List<String>, // list of hex codes ["#808000", ...]
-    val advice: Advice
+    @SerializedName("do_colours") val doColours: String? = null,
+    @SerializedName("dont_colours") val dontColours: String? = null,
+    val advice: Advice,
 )
 
 data class BodyType(

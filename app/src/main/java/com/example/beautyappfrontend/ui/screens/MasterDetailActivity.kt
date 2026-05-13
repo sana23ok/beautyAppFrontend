@@ -39,6 +39,7 @@ import com.example.beautyappfrontend.domain.model.MasterReviewItem
 import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
+import com.example.beautyappfrontend.utils.FavoriteMastersStorage
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
@@ -173,7 +174,32 @@ class MasterDetailActivity : AppCompatActivity() {
         bindPriceSection(m)
         bindWorkPhotosSection(m)
         bindMessageButton(m)
+        bindFavoriteButton(m)
         bindInitialSchedule(m)
+    }
+
+    private fun bindFavoriteButton(m: MasterProfileResponse) {
+        val favorites = FavoriteMastersStorage(this)
+        fun render(isFav: Boolean) {
+            binding.btnFavorite.setImageResource(
+                if (isFav) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline,
+            )
+            binding.btnFavorite.imageTintList = null
+        }
+        render(favorites.isFavorite(m.id))
+        binding.btnFavorite.setOnClickListener {
+            val now = favorites.toggle(
+                FavoriteMastersStorage.Summary(
+                    id = m.id,
+                    name = m.name,
+                    specialization = m.specialization,
+                    profilePhoto = m.profilePhoto,
+                    city = m.city,
+                    rating = m.reviewsAverage ?: 0.0,
+                ),
+            )
+            render(now)
+        }
     }
 
     private fun bindMasterHeader(m: MasterProfileResponse) {

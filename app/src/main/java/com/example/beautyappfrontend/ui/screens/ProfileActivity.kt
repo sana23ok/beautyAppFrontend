@@ -16,6 +16,7 @@ import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.CheckBox
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -48,6 +49,7 @@ import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
+import com.example.beautyappfrontend.utils.FavoriteMastersStorage
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleFormat
 import com.example.beautyappfrontend.utils.MasterScheduleUi
@@ -184,11 +186,6 @@ class ProfileActivity : AppCompatActivity() {
         syncProfileFromBackend()
     }
 
-    override fun onResume() {
-        super.onResume()
-        ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
-    }
-
     private fun populateUserData() {
         val name = session.getDisplayName()
         val email = session.getEmail()
@@ -216,6 +213,76 @@ class ProfileActivity : AppCompatActivity() {
         } else {
             renderClientProfile(name, email, phone, session.getAvatarUrl().orEmpty())
         }
+        renderFavoritesSection()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ChatBadgeHelper.updateBadge(binding.bottomNav, session.getToken(), lifecycleScope)
+        // Pick up new/removed favourites added on other screens (search, masters page).
+        renderFavoritesSection()
+    }
+
+    private fun renderFavoritesSection() {
+        val storage = FavoriteMastersStorage(this)
+        val favorites = storage.list()
+        val container = binding.layoutFavoritesList
+        container.removeAllViews()
+
+        if (favorites.isEmpty()) {
+            binding.layoutFavoritesSection.visibility = View.GONE
+            return
+        }
+        binding.layoutFavoritesSection.visibility = View.VISIBLE
+        binding.tvFavoritesCount.text =
+            if (favorites.size == 1) "1 saved" else "${favorites.size} saved"
+
+        for (fav in favorites) {
+            container.addView(createFavoriteCard(fav, storage))
+        }
+    }
+
+    private fun createFavoriteCard(
+        fav: FavoriteMastersStorage.Summary,
+        storage: FavoriteMastersStorage,
+    ): View {
+        val card = layoutInflater.inflate(R.layout.item_favorite_master, binding.layoutFavoritesList, false)
+        val ivPhoto = card.findViewById<ImageView>(R.id.ivFavPhoto)
+        val tvName = card.findViewById<TextView>(R.id.tvFavName)
+        val tvSpec = card.findViewById<TextView>(R.id.tvFavSpec)
+        val tvRating = card.findViewById<TextView>(R.id.tvFavRating)
+        val btnRemove = card.findViewById<ImageButton>(R.id.btnFavRemove)
+
+        tvName.text = fav.name.ifBlank { "—" }
+        tvSpec.text = listOf(fav.specialization.ifBlank { "" }, fav.city.orEmpty())
+            .filter { it.isNotBlank() }
+            .joinToString(" · ")
+            .ifBlank { "Specialist" }
+
+        if (fav.rating > 0.0) {
+            tvRating.visibility = View.VISIBLE
+            tvRating.text = String.format(Locale.getDefault(), "\u2605 %.1f", fav.rating)
+        } else {
+            tvRating.visibility = View.GONE
+        }
+
+        if (!fav.profilePhoto.isNullOrBlank()) {
+            ivPhoto.imageTintList = null
+            ivPhoto.load(fav.profilePhoto) {
+                crossfade(true)
+                placeholder(R.drawable.ic_nav_profile)
+                error(R.drawable.ic_nav_profile)
+            }
+        } else {
+            ivPhoto.setImageResource(R.drawable.ic_nav_profile)
+        }
+
+        card.setOnClickListener { openMasterDetail(fav.id) }
+        btnRemove.setOnClickListener {
+            storage.remove(fav.id)
+            renderFavoritesSection()
+        }
+        return card
     }
 
     private fun syncProfileFromBackend() {

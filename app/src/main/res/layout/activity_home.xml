@@ -659,10 +659,29 @@
                                 android:id="@+id/tvSeasonName"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
+                                android:layout_marginTop="2dp"
                                 android:textColor="@color/black"
                                 android:textSize="22sp"
                                 android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvSeasonDescription"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:lineSpacingMultiplier="1.2"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:visibility="gone" />
+
+                            <TextView
+                                android:id="@+id/tvDoColours"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:visibility="gone" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -687,6 +706,15 @@
                                 android:layout_marginTop="8dp"
                                 android:textColor="@color/text_primary"
                                 android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDontColours"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:visibility="gone" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -860,13 +888,16 @@
                         android:background="@drawable/bg_result_card_guava_alt"
                         android:elevation="4dp"
                         android:orientation="vertical"
-                        android:padding="16dp"
+                        android:paddingStart="16dp"
+                        android:paddingTop="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="12dp"
                         android:visibility="gone">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Recommended specialists"
+                            android:text="Recommended Specialists"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -876,15 +907,25 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
+                            android:text="Curated based on your preferences"
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
 
-                        <LinearLayout
-                            android:id="@+id/containerMasters"
+                        <HorizontalScrollView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
-                            android:orientation="horizontal" />
+                            android:layout_marginStart="-6dp"
+                            android:layout_marginEnd="-6dp"
+                            android:overScrollMode="never"
+                            android:scrollbars="none">
+
+                            <LinearLayout
+                                android:id="@+id/containerMasters"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
                     </LinearLayout>
 
                     <!-- Outfit Ideas Card -->
@@ -901,13 +942,36 @@
                         android:padding="16dp"
                         android:visibility="gone">
 
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Outfit inspiration"
-                            android:textColor="@color/black"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Look Ideas"
+                                android:textColor="@color/black"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/btnExploreMoreLooks"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_explore_more"
+                                android:paddingStart="14dp"
+                                android:paddingTop="8dp"
+                                android:paddingEnd="14dp"
+                                android:paddingBottom="8dp"
+                                android:text="Explore More Looks"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:visibility="gone" />
+                        </LinearLayout>
 
                         <TextView
                             android:id="@+id/tv_outfit_cloudinary_hint"
