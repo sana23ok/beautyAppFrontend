@@ -27,6 +27,7 @@ import com.example.beautyappfrontend.ui.OutfitGridAdapter
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.OutfitIdeasHelper
 import com.example.beautyappfrontend.utils.SessionManager
+import com.example.beautyappfrontend.utils.bodyShapeLabelForDisplay
 import com.google.android.flexbox.FlexboxLayout
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -101,18 +102,6 @@ class HomeActivity : AppCompatActivity() {
             ),
         ),
         Question(
-            key = "body_proportion",
-            options = listOf(
-                QuizOption("Rectangle", "Rectangle"),
-                QuizOption("Inverted Triangle", "Inverted Triangle"),
-                QuizOption("Triangle", "Triangle"),
-                QuizOption("Oval", "Oval"),
-                QuizOption("Trapezoid", "Trapezoid"),
-                QuizOption("Hourglass", "Hourglass"),
-                QuizOption("Apple", "Apple"),
-            ),
-        ),
-        Question(
             key = "preferred_style",
             options = listOf(
                 QuizOption("Classic", "classic"),
@@ -145,7 +134,6 @@ class HomeActivity : AppCompatActivity() {
             binding.containerQ3,
             binding.containerQ4,
             binding.containerQ5,
-            binding.containerQ6,
             binding.containerQ8,
             binding.containerQ9,
         )
@@ -257,10 +245,10 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun onAnalyseClicked() {
-        val requiredKeys = listOf("hair_color", "eyes_color", "skin_tone", "undertone", "torso_length", "body_proportion")
+        val requiredKeys = listOf("hair_color", "eyes_color", "skin_tone", "undertone", "torso_length")
         val missing = requiredKeys.filter { it !in selectedAnswers }
         if (missing.isNotEmpty()) {
-            Toast.makeText(this, "Please answer all required questions (1-6)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Please answer all required questions (1-5)", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -268,15 +256,13 @@ class HomeActivity : AppCompatActivity() {
         val waist = binding.etWaist.text.toString().toIntOrNull()
         val hips = binding.etHips.text.toString().toIntOrNull()
 
-        val bodyMeasurements = if (bust != null && waist != null && hips != null) {
-            BodyMeasurements(bust, waist, hips)
-        } else null
-
-        val calculatedBodyProp = if (bodyMeasurements != null) {
-            calculateBodyShape(bust!!, waist!!, hips!!)
-        } else {
-            selectedAnswers["body_proportion"]!!
+        if (bust == null || waist == null || hips == null) {
+            Toast.makeText(this, "Please enter bust, waist and hips measurements", Toast.LENGTH_SHORT).show()
+            return
         }
+
+        val calculatedShape = calculateBodyShape(bust, waist, hips)
+        val bodyProportion = shapeToBodyProportion(calculatedShape)
 
         val request = AppearanceTestRequest(
             hairColor = selectedAnswers["hair_color"]!!,
@@ -284,29 +270,32 @@ class HomeActivity : AppCompatActivity() {
             skinTone = selectedAnswers["skin_tone"]!!,
             undertone = selectedAnswers["undertone"]!!,
             torsoLength = selectedAnswers["torso_length"]!!,
-            bodyProportion = calculatedBodyProp,
+            bodyProportion = bodyProportion,
             preferredStyle = selectedAnswers["preferred_style"],
             goals = selectedGoals.toList().takeIf { it.isNotEmpty() },
-            bodyMeasurements = bodyMeasurements,
+            bodyMeasurements = BodyMeasurements(bust, waist, hips),
         )
 
         submitToBackend(request)
     }
 
+    /**
+     * B = bust, W = waist, H = hips (cm). Order: Hourglass → Pear → Inverted Triangle → Apple → Column.
+     */
     private fun calculateBodyShape(bust: Int, waist: Int, hips: Int): String {
-        if (bust == 0 || hips == 0) return selectedAnswers["body_proportion"] ?: "Rectangle"
+        if (bust == 0 || hips == 0) return "Column"
 
-        val bustHipRatio = bust.toFloat() / hips
-        val waistHipRatio = waist.toFloat() / hips
+        if (Math.abs(bust - hips) <= 5 && bust - waist >= 18 && hips - waist >= 18) return "Hourglass"
+        if (hips - bust >= 6 && hips - waist >= 15) return "Pear"
+        if (bust - hips >= 6 && bust - waist >= 15) return "Inverted Triangle"
+        if (waist >= bust - 5 && waist >= hips - 5) return "Apple"
+        return "Column"
+    }
 
-        return when {
-            bustHipRatio >= 1.05 -> "Inverted Triangle"
-            bustHipRatio <= 0.90 -> "Triangle"
-            waistHipRatio < 0.75 -> "Hourglass"
-            waistHipRatio > 0.85 && bustHipRatio in 0.95..1.05 -> "Apple"
-            waistHipRatio > 0.80 -> "Rectangle"
-            else -> "Trapezoid"
-        }
+    private fun shapeToBodyProportion(shape: String): String = when (shape) {
+        "Pear" -> "Triangle"
+        "Column" -> "Rectangle"
+        else -> shape
     }
 
     private fun submitToBackend(request: AppearanceTestRequest) {
@@ -383,7 +372,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         if (!hasSavedResult) {
-            binding.tvTestSubtitle.text = "Answer six questions for your personalised palette"
+            binding.tvTestSubtitle.text = "Answer five questions and enter measurements for your personalised result"
             binding.tvResultsSubtitle.text = "No result yet"
             binding.tvNoResults.visibility = View.VISIBLE
             binding.resultsDetails.visibility = View.GONE
@@ -399,7 +388,6 @@ class HomeActivity : AppCompatActivity() {
         selectedAnswers["skin_tone"] = request.skinTone
         selectedAnswers["undertone"] = request.undertone
         selectedAnswers["torso_length"] = request.torsoLength
-        selectedAnswers["body_proportion"] = request.bodyProportion
         request.preferredStyle?.let { selectedAnswers["preferred_style"] = it }
 
         updateSelectedChip("hair_color", request.hairColor)
@@ -407,7 +395,6 @@ class HomeActivity : AppCompatActivity() {
         updateSelectedChip("skin_tone", request.skinTone)
         updateSelectedChip("undertone", request.undertone)
         updateSelectedChip("torso_length", request.torsoLength)
-        updateSelectedChip("body_proportion", request.bodyProportion)
         request.preferredStyle?.let { updateSelectedChip("preferred_style", it) }
 
         selectedGoals.clear()
@@ -453,8 +440,8 @@ class HomeActivity : AppCompatActivity() {
 
         binding.tvSeasonName.text = colorType.season
 
-        val bodyShapeDisplay = result.calculatedBodyShape ?: bodyType.shape
-        binding.tvBodyShape.text = bodyShapeDisplay
+        val rawShape = result.calculatedBodyShape ?: bodyType.shape
+        binding.tvBodyShape.text = bodyShapeLabelForDisplay(rawShape)
 //        binding.tvBodyDescription.text = bodyType.description
 
         renderPalette(colorType.palette)
@@ -470,7 +457,7 @@ class HomeActivity : AppCompatActivity() {
             renderAccessoriesCard(ext)
         }
 
-        renderOutfitIdeas(bodyType.shape)
+        renderOutfitIdeas(result.calculatedBodyShape ?: bodyType.shape)
 
         result.recommendedMasters?.let { masters ->
             renderRecommendedMasters(masters)

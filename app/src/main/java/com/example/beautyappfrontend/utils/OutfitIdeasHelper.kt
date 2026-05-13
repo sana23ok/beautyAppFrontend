@@ -8,9 +8,7 @@ import com.google.gson.reflect.TypeToken
  * Loads [assets/outfits_manifest.json] built from `outfits_by_body_type.csv`.
  * Full image URL = BuildConfig.CLOUDINARY_OUTFIT_BASE_URL + "/" + entry.image
  *
- * Quiz/API body proportion labels map to CSV folders:
- * Hourglass, Apple → same; Rectangle, Trapezoid, Inverted Triangle → Column;
- * Triangle → Pear; Oval → Apple.
+ * Calculated shape → folder: Inverted Triangle uses Column (same outfit set as Rectangle).
  */
 object OutfitIdeasHelper {
 
@@ -27,18 +25,18 @@ object OutfitIdeasHelper {
         return cached!!
     }
 
-    /** Maps API/shape label from recommendations (quiz body proportion) to folders in CSV. */
+    /** Maps calculated/API body shape to manifest folder key. */
     fun manifestKeyForShape(apiShape: String): String? =
         when (apiShape.trim()) {
             "Hourglass" -> "Hourglass"
             "Apple" -> "Apple"
-            "Rectangle" -> "Column"
-            "Triangle" -> "Pear"
-            "Inverted Triangle" -> "Column"
-            "Oval" -> "Apple"
-            "Trapezoid" -> "Column"
             "Pear" -> "Pear"
-            "Bump Friendly" -> "Bump Friendly"
+            "Column" -> "Column"
+            "Inverted Triangle" -> "Column"
+            "Bump_Friendly", "Bump Friendly" -> "Bump Friendly"
+            "Rectangle", "Trapezoid" -> "Column"
+            "Triangle" -> "Pear"
+            "Oval" -> "Apple"
             else -> null
         }
 

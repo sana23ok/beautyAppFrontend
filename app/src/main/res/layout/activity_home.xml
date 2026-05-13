@@ -311,24 +311,29 @@
                     android:text="6. Body proportion (silhouette)"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:visibility="gone" />
 
                 <TextView
+                    android:id="@+id/subtitle_q6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
                     android:paddingBottom="10dp"
                     android:text="Select one option"
                     android:textColor="@color/text_hint"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
                 <HorizontalScrollView
+                    android:id="@+id/scroll_q6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="16dp"
-                    android:scrollbars="none">
+                    android:scrollbars="none"
+                    android:visibility="gone">
 
                     <LinearLayout
                         android:id="@+id/container_q6"
@@ -337,7 +342,7 @@
                         android:orientation="horizontal" />
                 </HorizontalScrollView>
 
-                <!-- Q7: Body measurements (optional) -->
+                <!-- Q6: Body measurements (required for body type calculation) -->
                 <TextView
                     android:id="@+id/header_q7"
                     android:layout_width="match_parent"
@@ -346,7 +351,7 @@
                     android:paddingTop="4dp"
                     android:paddingEnd="16dp"
                     android:paddingBottom="4dp"
-                    android:text="7. Body measurements (optional)"
+                    android:text="6. Body measurements"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -356,7 +361,7 @@
                     android:layout_height="wrap_content"
                     android:paddingStart="16dp"
                     android:paddingBottom="10dp"
-                    android:text="Enter in cm for more accurate body shape calculation"
+                    android:text="Enter bust, waist and hips in cm (required)"
                     android:textColor="@color/text_hint"
                     android:textSize="12sp" />
 

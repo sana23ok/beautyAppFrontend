@@ -10,6 +10,7 @@ import com.example.beautyappfrontend.databinding.ActivityAnalysisResultBinding
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AnalysisResult
 import com.example.beautyappfrontend.ui.AnalysisViewModel
+import com.example.beautyappfrontend.utils.bodyShapeLabelForDisplay
 import com.google.gson.Gson
 import coil.load
 import coil.transform.CircleCropTransformation
@@ -51,7 +52,7 @@ class AnalysisResultActivity : AppCompatActivity() {
         renderPalette(colorType.palette)
 
         val bodyType = analysisResult.bodyType
-        binding.tvBodyShape.text = "${bodyType.shape} (${bodyType.description})"
+        binding.tvBodyShape.text = bodyShapeLabelForDisplay(bodyType.shape)
 
         val bestClothes = bodyType.advice.bestClothes?.joinToString("\n• ") ?: ""
         binding.tvBodyAdvice.text = "What to wear:\n• $bestClothes"
@@ -79,7 +80,7 @@ class AnalysisResultActivity : AppCompatActivity() {
                 renderPalette(colorType.palette)
 
                 val bodyType = response.analysisResult.bodyType
-                binding.tvBodyShape.text = "${bodyType.shape} (${bodyType.description})"
+                binding.tvBodyShape.text = bodyShapeLabelForDisplay(bodyType.shape)
 
                 val bestClothes = bodyType.advice.bestClothes?.joinToString("\n• ") ?: ""
                 binding.tvBodyAdvice.text = "What to wear:\n• $bestClothes"
