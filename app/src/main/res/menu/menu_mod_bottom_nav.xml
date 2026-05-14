@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_mod_moderation"
+        android:icon="@drawable/ic_mod_shield"
+        android:title="Moderation" />
+    <item
+        android:id="@+id/nav_mod_chat"
+        android:icon="@drawable/ic_nav_chat"
+        android:title="Messages" />
+    <item
+        android:id="@+id/nav_mod_profile"
+        android:icon="@drawable/ic_nav_profile"
+        android:title="Profile" />
+</menu>

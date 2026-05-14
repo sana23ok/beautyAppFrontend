@@ -85,6 +85,11 @@
             android:label="Результати аналізу"
             android:theme="@style/Theme.BeautyAppFrontend.LightStatusBar" />
 
+        <activity
+            android:name=".ui.screens.ModerationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BeautyAppFrontend.LightStatusBar" />
+
     </application>
 
 </manifest>

@@ -1,6 +1,8 @@
 package com.example.beautyappfrontend.data.remote
 
 import com.example.beautyappfrontend.domain.model.AnalysisResponse
+import com.example.beautyappfrontend.domain.model.ModReview
+import com.example.beautyappfrontend.domain.model.ModUser
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
@@ -301,4 +303,30 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Path("id") conversationId: Int,
     ): Response<MarkReadResponse>
+
+    // ── Moderation (staff only) ────────────────────────────────────────────────
+
+    @GET("api/moderation/users/")
+    suspend fun getModerationUsers(
+        @Header("Authorization") authHeader: String,
+        @Query("q") query: String? = null,
+    ): Response<List<ModUser>>
+
+    @DELETE("api/moderation/users/{id}/")
+    suspend fun deleteModerationUser(
+        @Header("Authorization") authHeader: String,
+        @Path("id") id: Int,
+    ): Response<Unit>
+
+    @GET("api/moderation/reviews/")
+    suspend fun getModerationReviews(
+        @Header("Authorization") authHeader: String,
+        @Query("q") query: String? = null,
+    ): Response<List<ModReview>>
+
+    @DELETE("api/moderation/reviews/{id}/")
+    suspend fun deleteModerationReview(
+        @Header("Authorization") authHeader: String,
+        @Path("id") id: Int,
+    ): Response<Unit>
 }

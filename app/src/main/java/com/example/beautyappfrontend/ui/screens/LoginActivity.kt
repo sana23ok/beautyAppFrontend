@@ -124,10 +124,15 @@ class LoginActivity : AppCompatActivity() {
                     session.saveTokens(state.token, state.refreshToken)
                     session.saveUserInfo(state.user)
                     session.saveIsMaster(state.user?.isMaster == true)
+                    session.saveIsStaff(state.user?.isStaff == true)
                     lifecycleScope.launch {
                         FavoriteMastersRepository.sync()
                     }
-                    navigateToHome()
+                    if (session.isStaff()) {
+                        navigateToModeration()
+                    } else {
+                        navigateToHome()
+                    }
                 }
                 is AuthState.VerificationCodeSent -> {
                     binding.btnLogin.isEnabled = true
@@ -152,6 +157,12 @@ class LoginActivity : AppCompatActivity() {
 
     private fun navigateToHome() {
         val intent = Intent(this, HomeActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+    }
+
+    private fun navigateToModeration() {
+        val intent = Intent(this, ModerationActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
     }

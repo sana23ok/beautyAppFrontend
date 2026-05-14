@@ -53,6 +53,7 @@ data class AuthUserInfo(
     val avatar: String? = null,
     @SerializedName("phone_number") val phoneNumber: String? = null,
     @SerializedName("is_master") val isMaster: Boolean? = null,
+    @SerializedName("is_staff") val isStaff: Boolean? = null,
     @SerializedName("client_profile_id") val clientProfileId: Int? = null,
     @SerializedName("master_profile_id") val masterProfileId: Int? = null,
 )
