@@ -11,6 +11,7 @@ data class ConversationParticipant(
     val avatar: String? = null,
     @SerializedName("is_online") val isOnline: Boolean = false,
     @SerializedName("display_name") val displayNameFromServer: String = "",
+    @SerializedName("is_staff") val isStaff: Boolean = false,
 ) {
     val displayName: String
         get() = when {
@@ -87,6 +88,7 @@ data class Conversation(
     val lastMessageTime: String = "",
     val unreadCount: Int = 0,
     val isOnline: Boolean = false,
+    val participantIsStaff: Boolean = false,
 ) {
     companion object {
         fun from(response: ConversationResponse): Conversation {
@@ -99,6 +101,7 @@ data class Conversation(
                 lastMessageTime = response.lastMessageTime,
                 unreadCount = response.unreadCount,
                 isOnline = response.participant?.isOnline ?: false,
+                participantIsStaff = response.participant?.isStaff == true,
             )
         }
     }

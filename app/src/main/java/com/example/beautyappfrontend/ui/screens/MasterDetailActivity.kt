@@ -706,6 +706,10 @@ class MasterDetailActivity : AppCompatActivity() {
                         ChatConversationActivity.EXTRA_IS_ONLINE,
                         conversation.participant?.isOnline ?: false,
                     )
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_IS_STAFF,
+                        conversation.participant?.isStaff == true,
+                    )
                 }
                 startActivity(intent)
             } catch (e: Exception) {

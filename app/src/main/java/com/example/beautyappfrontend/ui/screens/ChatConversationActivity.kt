@@ -48,6 +48,7 @@ class ChatConversationActivity : AppCompatActivity() {
     private var participantName: String = ""
     private var participantAvatar: String = ""
     private var isOnline: Boolean = false
+    private var participantIsStaff: Boolean = false
 
     private val refreshHandler = Handler(Looper.getMainLooper())
     private var isRefreshing = false
@@ -68,6 +69,7 @@ class ChatConversationActivity : AppCompatActivity() {
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_PARTICIPANT_NAME = "participant_name"
         const val EXTRA_PARTICIPANT_AVATAR = "participant_avatar"
+        const val EXTRA_PARTICIPANT_IS_STAFF = "participant_is_staff"
         const val EXTRA_PARTICIPANT_ID = "participant_id"
         const val EXTRA_IS_ONLINE = "is_online"
         private const val MENU_REPORT_PROFILE = 1
@@ -148,6 +150,7 @@ class ChatConversationActivity : AppCompatActivity() {
         participantName = intent.getStringExtra(EXTRA_PARTICIPANT_NAME) ?: "Unknown"
         participantAvatar = intent.getStringExtra(EXTRA_PARTICIPANT_AVATAR) ?: ""
         isOnline = intent.getBooleanExtra(EXTRA_IS_ONLINE, false)
+        participantIsStaff = intent.getBooleanExtra(EXTRA_PARTICIPANT_IS_STAFF, false)
     }
 
     private fun setupHeader() {
@@ -165,7 +168,17 @@ class ChatConversationActivity : AppCompatActivity() {
     }
 
     private fun renderHeaderAvatar() {
-        if (participantAvatar.isNotBlank()) {
+        if (participantIsStaff) {
+            binding.ivAvatar.imageTintList = null
+            binding.ivAvatar.load(R.drawable.seelfera_moderation_team) {
+                crossfade(true)
+                placeholder(R.drawable.ic_nav_profile)
+                error(R.drawable.ic_nav_profile)
+                transformations(CircleCropTransformation())
+            }
+            binding.ivAvatar.background = null
+            binding.ivAvatar.setPadding(0, 0, 0, 0)
+        } else if (participantAvatar.isNotBlank()) {
             binding.ivAvatar.imageTintList = null
             binding.ivAvatar.load(participantAvatar) {
                 crossfade(true)
@@ -194,7 +207,7 @@ class ChatConversationActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             val popup = PopupMenu(this, anchor)
-            if (participantId > 0) {
+            if (participantId > 0 && !participantIsStaff) {
                 popup.menu.add(0, MENU_REPORT_PROFILE, 0, getString(R.string.chat_report_profile))
             }
             popup.menu.add(0, MENU_DELETE_SELF, 1, getString(R.string.chat_delete_for_me))

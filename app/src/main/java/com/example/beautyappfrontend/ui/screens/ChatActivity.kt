@@ -137,6 +137,7 @@ class ChatActivity : AppCompatActivity() {
             putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_NAME, conversation.participantName)
             putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR, conversation.participantAvatar)
             putExtra(ChatConversationActivity.EXTRA_IS_ONLINE, conversation.isOnline)
+            putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_IS_STAFF, conversation.participantIsStaff)
         }
         startActivity(intent)
     }

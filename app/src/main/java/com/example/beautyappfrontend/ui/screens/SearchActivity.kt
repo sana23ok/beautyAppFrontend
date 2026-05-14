@@ -141,6 +141,10 @@ class SearchActivity : AppCompatActivity() {
                         ChatConversationActivity.EXTRA_IS_ONLINE,
                         response.participant?.isOnline ?: false,
                     )
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_IS_STAFF,
+                        response.participant?.isStaff == true,
+                    )
                 }
                 startActivity(intent)
             } catch (e: Exception) {

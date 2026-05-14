@@ -40,7 +40,15 @@ class ConversationAdapter(
         holder.lastMessage.text = conversation.lastMessage.ifBlank { "No messages yet" }
         holder.time.text = conversation.lastMessageTime
 
-        if (conversation.participantAvatar.isNotBlank()) {
+        if (conversation.participantIsStaff) {
+            holder.avatar.imageTintList = null
+            holder.avatar.load(R.drawable.seelfera_moderation_team) {
+                crossfade(true)
+                transformations(CircleCropTransformation())
+            }
+            holder.avatar.background = null
+            holder.avatar.setPadding(0, 0, 0, 0)
+        } else if (conversation.participantAvatar.isNotBlank()) {
             holder.avatar.imageTintList = null
             holder.avatar.load(conversation.participantAvatar) {
                 crossfade(true)

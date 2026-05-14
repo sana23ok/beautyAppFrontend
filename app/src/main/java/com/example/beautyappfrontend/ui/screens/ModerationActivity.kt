@@ -282,6 +282,7 @@ class ModerationActivity : AppCompatActivity() {
             intent.putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_ID, conv.participantId)
             intent.putExtra("participant_name", conv.participantName)
             intent.putExtra("participant_avatar", conv.participantAvatar)
+            intent.putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_IS_STAFF, conv.participantIsStaff)
             intent.putExtra("participant_id", conv.participantId)
             startActivity(intent)
         }

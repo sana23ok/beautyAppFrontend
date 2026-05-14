@@ -2,7 +2,6 @@ package com.example.beautyappfrontend.ui.screens
 
 import android.app.ActivityOptions
 import android.content.Intent
-import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -39,8 +38,6 @@ class SearchPageActivity : AppCompatActivity() {
     private var filterSpecialisation = ""
     private var filterExperience     = ""
     private var filterPriceMax: Int? = null
-    private var currentPage          = 1
-    private var totalPages           = 1
     private var isLoading            = false
 
     companion object {
@@ -57,7 +54,6 @@ class SearchPageActivity : AppCompatActivity() {
         setupRecyclerView()
         setupSearch()
         setupFilterButton()
-        setupPagination()
         setupProfileIcon()
         setupBottomNav()
 
@@ -153,6 +149,7 @@ class SearchPageActivity : AppCompatActivity() {
                     putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_NAME, response.participant?.displayName ?: specialist.name)
                     putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR, response.participant?.avatar ?: specialist.imageUrl)
                     putExtra(ChatConversationActivity.EXTRA_IS_ONLINE, response.participant?.isOnline ?: false)
+                    putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_IS_STAFF, response.participant?.isStaff == true)
                 }
                 startActivity(intent)
             } catch (e: Exception) {
@@ -187,14 +184,13 @@ class SearchPageActivity : AppCompatActivity() {
                 val response = RetrofitInstance.api.searchSpecialists(
                     authorization = authHeader,
                     query = searchQuery.ifBlank { null },
-                    page = currentPage,
+                    page = null,
                 )
 
                 if (response.isSuccessful) {
                     val masters = response.body() ?: emptyList()
                     Log.d(TAG, "Fetched ${masters.size} masters from backend")
                     loadSpecialists(masters)
-                    updatePaginationFromResults(masters.size)
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "Unknown error"
                     Log.e(TAG, "Failed to fetch masters: HTTP ${response.code()} - $errorBody")
@@ -233,11 +229,6 @@ class SearchPageActivity : AppCompatActivity() {
         return parts.joinToString(" ")
     }
 
-    private fun updatePaginationFromResults(count: Int) {
-        totalPages = if (count >= 10) 2 else 1
-        setupPagination()
-    }
-
     // ── Search ────────────────────────────────────────────────────────────────
 
     private fun setupSearch() {
@@ -254,7 +245,6 @@ class SearchPageActivity : AppCompatActivity() {
         val query = binding.etSearch.text.toString().trim()
         Log.d(TAG, "Search query='$query' loc=$filterLocation spec=$filterSpecialisation " +
                 "exp=$filterExperience price=$filterPriceMax")
-        currentPage = 1
         fetchMasters(query)
     }
 
@@ -306,7 +296,6 @@ class SearchPageActivity : AppCompatActivity() {
                     "exp=$filterExperience price=$filterPriceMax")
             dialog.dismiss()
             refreshChips()
-            currentPage = 1
             fetchMasters(binding.etSearch.text.toString().trim())
         }
 
@@ -335,38 +324,6 @@ class SearchPageActivity : AppCompatActivity() {
         if (filterPriceMax != null)             addChip("Max: ${filterPriceMax}₴")
 
         binding.hsvChips.isVisible = hasAny
-    }
-
-    // ── Pagination ────────────────────────────────────────────────────────────
-
-    private fun setupPagination() {
-        val container = binding.llPagination
-        container.removeAllViews()
-
-        if (totalPages <= 1) { container.isVisible = false; return }
-        container.isVisible = true
-
-        for (page in 1..totalPages) {
-            val tv = TextView(this).apply {
-                text     = "Page $page"
-                textSize = 13f
-                setPadding(24, 12, 24, 12)
-                setTypeface(null, if (page == currentPage) Typeface.BOLD else Typeface.NORMAL)
-                setTextColor(
-                    if (page == currentPage) getColor(R.color.green_dark)
-                    else getColor(R.color.guava_sage)
-                )
-                setOnClickListener {
-                    if (currentPage != page) {
-                        currentPage = page
-                        Log.d(TAG, "Page $page selected")
-                        setupPagination()
-                        fetchMasters(binding.etSearch.text.toString().trim())
-                    }
-                }
-            }
-            container.addView(tv)
-        }
     }
 
     // ── Profile icon ──────────────────────────────────────────────────────────
