@@ -35,4 +35,5 @@ data class ModReview(
     val rating: Int = 0,
     val comment: String = "",
     @SerializedName("created_at") val createdAt: String = "",
+    @SerializedName("report_count") val reportCount: Int = 0,
 )

@@ -3,6 +3,7 @@ package com.example.beautyappfrontend.data.remote
 import com.example.beautyappfrontend.domain.model.AnalysisResponse
 import com.example.beautyappfrontend.domain.model.ModReview
 import com.example.beautyappfrontend.domain.model.ModUser
+import com.example.beautyappfrontend.domain.model.ReviewReportRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestRequest
 import com.example.beautyappfrontend.domain.model.AppearanceTestResponse
 import com.example.beautyappfrontend.domain.model.AuthResponse
@@ -328,5 +329,13 @@ interface BeautyApi {
     suspend fun deleteModerationReview(
         @Header("Authorization") authHeader: String,
         @Path("id") id: Int,
+    ): Response<Unit>
+
+    @POST("api/masters/{masterId}/reviews/{reviewId}/report/")
+    suspend fun reportReview(
+        @Header("Authorization") authHeader: String,
+        @Path("masterId") masterId: Int,
+        @Path("reviewId") reviewId: Int,
+        @Body request: ReviewReportRequest,
     ): Response<Unit>
 }

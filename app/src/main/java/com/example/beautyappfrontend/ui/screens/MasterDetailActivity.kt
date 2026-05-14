@@ -10,6 +10,9 @@ import android.text.style.StyleSpan
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
+import android.widget.EditText
+import android.widget.PopupMenu
+import android.widget.RadioGroup
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.GridLayout
@@ -38,6 +41,7 @@ import com.example.beautyappfrontend.domain.model.BookingResponse
 import com.example.beautyappfrontend.domain.model.MasterProfileResponse
 import com.example.beautyappfrontend.domain.model.MasterReviewItem
 import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
+import com.example.beautyappfrontend.domain.model.ReviewReportRequest
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
@@ -286,12 +290,21 @@ class MasterDetailActivity : AppCompatActivity() {
 
         binding.layoutReviewsList.removeAllViews()
         binding.tvReviewsEmpty.visibility = View.GONE
+        val yourReviewId = envelope.yourReview?.id
+        val masterId = currentMaster?.id ?: -1
+        val isLoggedIn = !session.getToken().isNullOrBlank()
         envelope.results.forEach { item ->
-            binding.layoutReviewsList.addView(createReviewCard(item))
+            val isOwnReview = item.id == yourReviewId
+            binding.layoutReviewsList.addView(createReviewCard(item, masterId, isOwnReview, isLoggedIn))
         }
     }
 
-    private fun createReviewCard(item: MasterReviewItem): View {
+    private fun createReviewCard(
+        item: MasterReviewItem,
+        masterId: Int,
+        isOwnReview: Boolean,
+        isLoggedIn: Boolean,
+    ): View {
         val card = layoutInflater.inflate(R.layout.item_master_review, binding.layoutReviewsList, false)
         val ivAvatar = card.findViewById<ImageView>(R.id.iv_review_avatar)
         val tvAuthor = card.findViewById<TextView>(R.id.tv_review_author)
@@ -299,6 +312,7 @@ class MasterDetailActivity : AppCompatActivity() {
         val ratingRow = card.findViewById<android.widget.RatingBar>(R.id.rating_bar_review_row)
         val tvComment = card.findViewById<TextView>(R.id.tv_review_comment)
         val tvMore = card.findViewById<TextView>(R.id.tv_review_read_more)
+        val btnMore = card.findViewById<android.widget.ImageButton>(R.id.btn_review_more)
 
         val name = item.authorName.ifBlank { "—" }
         tvAuthor.text = buildReviewAuthorLabel(name, item.isVerified)
@@ -331,7 +345,103 @@ class MasterDetailActivity : AppCompatActivity() {
             tvComment.maxLines = Int.MAX_VALUE
             tvMore.visibility = View.GONE
         }
+
+        // Three-dots menu: show for logged-in users who did not write this review.
+        if (isLoggedIn && !isOwnReview) {
+            btnMore.visibility = View.VISIBLE
+            btnMore.setOnClickListener { anchor ->
+                val popup = PopupMenu(this, anchor)
+                popup.menu.add(0, 1, 0, "Report comment")
+                popup.setOnMenuItemClickListener { menuItem ->
+                    if (menuItem.itemId == 1) {
+                        showReportDialog(masterId, item)
+                    }
+                    true
+                }
+                popup.show()
+            }
+        }
+
         return card
+    }
+
+    private fun showReportDialog(masterId: Int, item: MasterReviewItem) {
+        val reasons = listOf(
+            "spam" to "Spam",
+            "false_info" to "False information",
+            "offensive" to "Offensive content",
+            "harassment" to "Harassment / bullying",
+            "other" to "Other",
+        )
+        val density = resources.displayMetrics.density
+
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val pad = (16 * density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+        }
+
+        val radioGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+        }
+        reasons.forEachIndexed { index, (_, label) ->
+            val rb = RadioButton(this).apply {
+                id = index + 1
+                text = label
+                setTextColor(android.graphics.Color.parseColor("#3D5A1E"))
+                textSize = 14f
+            }
+            radioGroup.addView(rb)
+        }
+        radioGroup.check(1)
+
+        val etDetails = EditText(this).apply {
+            hint = "Additional details (optional)"
+            maxLines = 3
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            val topMargin = (10 * density).toInt()
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.topMargin = topMargin }
+        }
+
+        container.addView(radioGroup)
+        container.addView(etDetails)
+
+        AlertDialog.Builder(this)
+            .setTitle("Report comment")
+            .setView(container)
+            .setPositiveButton("Submit") { _, _ ->
+                val checkedId = radioGroup.checkedRadioButtonId
+                val reasonKey = if (checkedId in 1..reasons.size) reasons[checkedId - 1].first else "other"
+                val text = etDetails.text?.toString()?.trim() ?: ""
+                submitReport(masterId, item.id, reasonKey, text)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun submitReport(masterId: Int, reviewId: Int, reason: String, text: String) {
+        val token = session.getToken() ?: return
+        lifecycleScope.launch {
+            try {
+                val resp = com.example.beautyappfrontend.data.remote.RetrofitInstance.api.reportReview(
+                    "Bearer $token",
+                    masterId,
+                    reviewId,
+                    ReviewReportRequest(reason = reason, text = text),
+                )
+                when (resp.code()) {
+                    201 -> Toast.makeText(this@MasterDetailActivity, "Report submitted. Thank you!", Toast.LENGTH_SHORT).show()
+                    409 -> Toast.makeText(this@MasterDetailActivity, "You have already reported this review.", Toast.LENGTH_SHORT).show()
+                    400 -> Toast.makeText(this@MasterDetailActivity, "Cannot report your own review.", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(this@MasterDetailActivity, "Failed to submit report.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Exception) {
+                Toast.makeText(this@MasterDetailActivity, "Network error. Please try again.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun buildReviewAuthorLabel(name: String, verified: Boolean): CharSequence {

@@ -413,6 +413,7 @@ class ModerationActivity : AppCompatActivity() {
             val rating: TextView = v.findViewById(R.id.tv_rating)
             val author: TextView = v.findViewById(R.id.tv_author)
             val comment: TextView = v.findViewById(R.id.tv_comment)
+            val reportCount: TextView = v.findViewById(R.id.tv_report_count)
             val btnDelete: ImageButton = v.findViewById(R.id.btn_delete)
         }
 
@@ -427,6 +428,12 @@ class ModerationActivity : AppCompatActivity() {
             holder.rating.text = "${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}"
             holder.author.text = "by ${review.authorName}"
             holder.comment.text = review.comment.ifBlank { "(no comment)" }
+            if (review.reportCount > 0) {
+                holder.reportCount.visibility = View.VISIBLE
+                holder.reportCount.text = "${review.reportCount} complaint${if (review.reportCount == 1) "" else "s"}"
+            } else {
+                holder.reportCount.visibility = View.GONE
+            }
             holder.btnDelete.setOnClickListener { onDelete(review) }
         }
 

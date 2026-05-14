@@ -10,6 +10,12 @@ data class MasterReviewItem(
     val comment: String = "",
     @SerializedName("created_at") val createdAt: String = "",
     @SerializedName("is_verified") val isVerified: Boolean = true,
+    @SerializedName("report_count") val reportCount: Int = 0,
+)
+
+data class ReviewReportRequest(
+    val reason: String,
+    val text: String = "",
 )
 
 data class MasterReviewsEnvelope(
