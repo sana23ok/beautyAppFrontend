@@ -11,6 +11,7 @@ data class ModUser(
     @SerializedName("is_staff") val isStaff: Boolean = false,
     val avatar: String? = null,
     @SerializedName("date_joined") val dateJoined: String = "",
+    @SerializedName("report_count") val reportCount: Int = 0,
 ) {
     val displayName: String
         get() {
@@ -36,4 +37,9 @@ data class ModReview(
     val comment: String = "",
     @SerializedName("created_at") val createdAt: String = "",
     @SerializedName("report_count") val reportCount: Int = 0,
+)
+
+data class ProfileReportRequest(
+    val reason: String,
+    val text: String = "",
 )

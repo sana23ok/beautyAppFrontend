@@ -128,6 +128,7 @@ class SearchActivity : AppCompatActivity() {
 
                 val intent = Intent(this@SearchActivity, ChatConversationActivity::class.java).apply {
                     putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, response.id)
+                    putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_ID, response.participant?.id ?: participantUserId)
                     putExtra(
                         ChatConversationActivity.EXTRA_PARTICIPANT_NAME,
                         response.participant?.displayName ?: specialist.name,

@@ -149,6 +149,7 @@ class SearchPageActivity : AppCompatActivity() {
 
                 val intent = Intent(this@SearchPageActivity, ChatConversationActivity::class.java).apply {
                     putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, response.id)
+                    putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_ID, response.participant?.id ?: participantUserId)
                     putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_NAME, response.participant?.displayName ?: specialist.name)
                     putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR, response.participant?.avatar ?: specialist.imageUrl)
                     putExtra(ChatConversationActivity.EXTRA_IS_ONLINE, response.participant?.isOnline ?: false)

@@ -44,6 +44,7 @@ import com.example.beautyappfrontend.domain.model.MasterReviewsEnvelope
 import com.example.beautyappfrontend.domain.model.ReviewReportRequest
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterServiceResponse
+import com.example.beautyappfrontend.domain.model.ProfileReportRequest
 import com.example.beautyappfrontend.utils.MasterProfileSchedule
 import com.example.beautyappfrontend.utils.MasterScheduleUi
 import com.example.beautyappfrontend.utils.SessionManager
@@ -205,6 +206,7 @@ class MasterDetailActivity : AppCompatActivity() {
         bindWorkPhotosSection(m)
         bindMessageButton(m)
         bindFavoriteButton(m)
+        bindProfileReportButton(m)
         bindInitialSchedule(m)
     }
 
@@ -237,6 +239,27 @@ class MasterDetailActivity : AppCompatActivity() {
         binding.tvLocation.text = loc.ifBlank { "—" }
         binding.tvDescription.text = m.description.ifBlank { getString(R.string.no_description) }
         binding.tvExperience.text = getString(R.string.experience_years_format, m.experienceYears.coerceAtLeast(0))
+    }
+
+    private fun bindProfileReportButton(m: MasterProfileResponse) {
+        val targetUserId = m.userId ?: 0
+        val canReport = session.isLoggedIn() && targetUserId > 0 && targetUserId != session.getUserId()
+        binding.btnProfileMore.visibility = if (canReport) View.VISIBLE else View.GONE
+        if (!canReport) {
+            binding.btnProfileMore.setOnClickListener(null)
+            return
+        }
+        binding.btnProfileMore.setOnClickListener { anchor ->
+            val popup = PopupMenu(this, anchor)
+            popup.menu.add(0, 1, 0, "Report profile")
+            popup.setOnMenuItemClickListener { item ->
+                if (item.itemId == 1) {
+                    showProfileReportDialog(targetUserId)
+                }
+                true
+            }
+            popup.show()
+        }
     }
 
     private fun updateReviewSummary(count: Int, average: Double?) {
@@ -444,6 +467,76 @@ class MasterDetailActivity : AppCompatActivity() {
         }
     }
 
+    private fun showProfileReportDialog(targetUserId: Int) {
+        val reasons = listOf(
+            "spam" to "Spam",
+            "fake_profile" to "Fake profile",
+            "offensive" to "Offensive content",
+            "harassment" to "Harassment / bullying",
+            "other" to "Other",
+        )
+        val density = resources.displayMetrics.density
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val pad = (16 * density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+        }
+        val radioGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        reasons.forEachIndexed { index, (_, label) ->
+            radioGroup.addView(RadioButton(this).apply {
+                id = index + 1
+                text = label
+                setTextColor(android.graphics.Color.parseColor("#3D5A1E"))
+                textSize = 14f
+            })
+        }
+        radioGroup.check(1)
+        val etDetails = EditText(this).apply {
+            hint = "Additional details (optional)"
+            maxLines = 3
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.topMargin = (10 * density).toInt() }
+        }
+        container.addView(radioGroup)
+        container.addView(etDetails)
+
+        AlertDialog.Builder(this)
+            .setTitle("Report profile")
+            .setView(container)
+            .setPositiveButton("Submit") { _, _ ->
+                val checkedId = radioGroup.checkedRadioButtonId
+                val reasonKey = if (checkedId in 1..reasons.size) reasons[checkedId - 1].first else "other"
+                val text = etDetails.text?.toString()?.trim().orEmpty()
+                submitProfileReport(targetUserId, reasonKey, text)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun submitProfileReport(targetUserId: Int, reason: String, text: String) {
+        val token = session.getToken() ?: return
+        lifecycleScope.launch {
+            try {
+                val resp = com.example.beautyappfrontend.data.remote.RetrofitInstance.api.reportUser(
+                    "Bearer $token",
+                    targetUserId,
+                    ProfileReportRequest(reason = reason, text = text),
+                )
+                when (resp.code()) {
+                    201 -> Toast.makeText(this@MasterDetailActivity, "Report submitted. Thank you!", Toast.LENGTH_SHORT).show()
+                    409 -> Toast.makeText(this@MasterDetailActivity, "You have already reported this profile.", Toast.LENGTH_SHORT).show()
+                    400 -> Toast.makeText(this@MasterDetailActivity, "Cannot report this profile.", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(this@MasterDetailActivity, "Failed to submit report.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Exception) {
+                Toast.makeText(this@MasterDetailActivity, "Network error. Please try again.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun buildReviewAuthorLabel(name: String, verified: Boolean): CharSequence {
         val nameColor = ContextCompat.getColor(this, R.color.text_primary)
         if (!verified) {
@@ -597,6 +690,10 @@ class MasterDetailActivity : AppCompatActivity() {
                 )
                 val intent = Intent(this@MasterDetailActivity, ChatConversationActivity::class.java).apply {
                     putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, conversation.id)
+                    putExtra(
+                        ChatConversationActivity.EXTRA_PARTICIPANT_ID,
+                        conversation.participant?.id ?: participantUserId,
+                    )
                     putExtra(
                         ChatConversationActivity.EXTRA_PARTICIPANT_NAME,
                         conversation.participant?.displayName ?: m.name,

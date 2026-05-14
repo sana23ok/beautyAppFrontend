@@ -8,9 +8,14 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.EditText
+import android.widget.PopupMenu
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -21,6 +26,7 @@ import com.example.beautyappfrontend.R
 import com.example.beautyappfrontend.data.repository.ChatRepository
 import com.example.beautyappfrontend.databinding.ActivityChatConversationBinding
 import com.example.beautyappfrontend.domain.model.ChatMessage
+import com.example.beautyappfrontend.domain.model.ProfileReportRequest
 import com.example.beautyappfrontend.ui.MessageAdapter
 import com.example.beautyappfrontend.utils.ChatBadgeHelper
 import com.example.beautyappfrontend.utils.SessionManager
@@ -38,6 +44,7 @@ class ChatConversationActivity : AppCompatActivity() {
     private val chatRepository = ChatRepository()
 
     private var conversationId: Int = 0
+    private var participantId: Int = 0
     private var participantName: String = ""
     private var participantAvatar: String = ""
     private var isOnline: Boolean = false
@@ -61,6 +68,7 @@ class ChatConversationActivity : AppCompatActivity() {
         const val EXTRA_CONVERSATION_ID = "conversation_id"
         const val EXTRA_PARTICIPANT_NAME = "participant_name"
         const val EXTRA_PARTICIPANT_AVATAR = "participant_avatar"
+        const val EXTRA_PARTICIPANT_ID = "participant_id"
         const val EXTRA_IS_ONLINE = "is_online"
     }
 
@@ -133,6 +141,7 @@ class ChatConversationActivity : AppCompatActivity() {
 
     private fun extractIntentData() {
         conversationId = intent.getIntExtra(EXTRA_CONVERSATION_ID, 0)
+        participantId = intent.getIntExtra(EXTRA_PARTICIPANT_ID, 0)
         participantName = intent.getStringExtra(EXTRA_PARTICIPANT_NAME) ?: "Unknown"
         participantAvatar = intent.getStringExtra(EXTRA_PARTICIPANT_AVATAR) ?: ""
         isOnline = intent.getBooleanExtra(EXTRA_IS_ONLINE, false)
@@ -176,8 +185,91 @@ class ChatConversationActivity : AppCompatActivity() {
 
     private fun setupHeaderButtons() {
         binding.btnBack.setOnClickListener { finish() }
-        binding.btnMore.setOnClickListener {
-            Toast.makeText(this, "More options", Toast.LENGTH_SHORT).show()
+        binding.btnMore.setOnClickListener { anchor ->
+            if (participantId <= 0) {
+                Toast.makeText(this, "Profile is unavailable", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val popup = PopupMenu(this, anchor)
+            popup.menu.add(0, 1, 0, "Report profile")
+            popup.setOnMenuItemClickListener { item ->
+                if (item.itemId == 1) {
+                    showProfileReportDialog(participantId)
+                }
+                true
+            }
+            popup.show()
+        }
+    }
+
+    private fun showProfileReportDialog(targetUserId: Int) {
+        val reasons = listOf(
+            "spam" to "Spam",
+            "fake_profile" to "Fake profile",
+            "offensive" to "Offensive content",
+            "harassment" to "Harassment / bullying",
+            "other" to "Other",
+        )
+        val density = resources.displayMetrics.density
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val pad = (16 * density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+        }
+        val radioGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        reasons.forEachIndexed { index, (_, label) ->
+            radioGroup.addView(RadioButton(this).apply {
+                id = index + 1
+                text = label
+                setTextColor(android.graphics.Color.parseColor("#3D5A1E"))
+                textSize = 14f
+            })
+        }
+        radioGroup.check(1)
+        val etDetails = EditText(this).apply {
+            hint = "Additional details (optional)"
+            maxLines = 3
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.topMargin = (10 * density).toInt() }
+        }
+        container.addView(radioGroup)
+        container.addView(etDetails)
+
+        AlertDialog.Builder(this)
+            .setTitle("Report profile")
+            .setView(container)
+            .setPositiveButton("Submit") { _, _ ->
+                val checkedId = radioGroup.checkedRadioButtonId
+                val reasonKey = if (checkedId in 1..reasons.size) reasons[checkedId - 1].first else "other"
+                val text = etDetails.text?.toString()?.trim().orEmpty()
+                submitProfileReport(targetUserId, reasonKey, text)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun submitProfileReport(targetUserId: Int, reason: String, text: String) {
+        val token = session.getToken() ?: return
+        lifecycleScope.launch {
+            try {
+                val resp = com.example.beautyappfrontend.data.remote.RetrofitInstance.api.reportUser(
+                    "Bearer $token",
+                    targetUserId,
+                    ProfileReportRequest(reason = reason, text = text),
+                )
+                when (resp.code()) {
+                    201 -> Toast.makeText(this@ChatConversationActivity, "Report submitted. Thank you!", Toast.LENGTH_SHORT).show()
+                    409 -> Toast.makeText(this@ChatConversationActivity, "You have already reported this profile.", Toast.LENGTH_SHORT).show()
+                    400 -> Toast.makeText(this@ChatConversationActivity, "Cannot report this profile.", Toast.LENGTH_SHORT).show()
+                    403 -> Toast.makeText(this@ChatConversationActivity, "You can report only profiles you have interacted with.", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(this@ChatConversationActivity, "Failed to submit report.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Exception) {
+                Toast.makeText(this@ChatConversationActivity, "Network error. Please try again.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

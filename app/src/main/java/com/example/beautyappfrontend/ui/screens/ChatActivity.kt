@@ -133,6 +133,7 @@ class ChatActivity : AppCompatActivity() {
     private fun openConversation(conversation: Conversation) {
         val intent = Intent(this, ChatConversationActivity::class.java).apply {
             putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, conversation.id)
+            putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_ID, conversation.participantId)
             putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_NAME, conversation.participantName)
             putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_AVATAR, conversation.participantAvatar)
             putExtra(ChatConversationActivity.EXTRA_IS_ONLINE, conversation.isOnline)

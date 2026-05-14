@@ -279,6 +279,7 @@ class ModerationActivity : AppCompatActivity() {
         conversationsAdapter = ConversationAdapter(emptyList()) { conv ->
             val intent = Intent(this, ChatConversationActivity::class.java)
             intent.putExtra("conversation_id", conv.id)
+            intent.putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_ID, conv.participantId)
             intent.putExtra("participant_name", conv.participantName)
             intent.putExtra("participant_avatar", conv.participantAvatar)
             intent.putExtra("participant_id", conv.participantId)
@@ -355,6 +356,7 @@ class ModerationActivity : AppCompatActivity() {
             val name: TextView = v.findViewById(R.id.tv_name)
             val email: TextView = v.findViewById(R.id.tv_email)
             val role: TextView = v.findViewById(R.id.tv_role)
+            val reportCount: TextView = v.findViewById(R.id.tv_report_count)
             val btnDelete: ImageButton = v.findViewById(R.id.btn_delete)
         }
 
@@ -368,6 +370,12 @@ class ModerationActivity : AppCompatActivity() {
             holder.name.text = user.displayName
             holder.email.text = user.email
             holder.role.text = user.roleLabel
+            if (user.reportCount > 0) {
+                holder.reportCount.visibility = View.VISIBLE
+                holder.reportCount.text = "${user.reportCount} profile complaint${if (user.reportCount == 1) "" else "s"}"
+            } else {
+                holder.reportCount.visibility = View.GONE
+            }
 
             if (!user.avatar.isNullOrBlank()) {
                 holder.avatar.imageTintList = null

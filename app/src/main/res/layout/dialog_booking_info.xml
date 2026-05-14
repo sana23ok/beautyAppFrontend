@@ -123,6 +123,17 @@
             android:textSize="14sp" />
 
         <Button
+            android:id="@+id/btn_booking_info_report"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_google_button"
+            android:text="Report profile"
+            android:textAllCaps="false"
+            android:textColor="@color/red_primary"
+            android:textSize="14sp" />
+
+        <Button
             android:id="@+id/btn_booking_info_cancel"
             android:layout_width="match_parent"
             android:layout_height="48dp"

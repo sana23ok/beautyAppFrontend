@@ -16,6 +16,8 @@ import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.CheckBox
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +28,7 @@ import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.example.beautyappfrontend.R
+import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.data.repository.AuthRepository
 import com.example.beautyappfrontend.data.repository.BookingRepository
 import com.example.beautyappfrontend.data.repository.ChatRepository
@@ -47,6 +50,7 @@ import com.example.beautyappfrontend.domain.model.MasterServiceRequest
 import com.example.beautyappfrontend.domain.model.MasterScheduleData
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoRequest
 import com.example.beautyappfrontend.domain.model.MasterWorkPhotoResponse
+import com.example.beautyappfrontend.domain.model.ProfileReportRequest
 import com.example.beautyappfrontend.domain.model.normalizeScheduleWeeks
 import com.example.beautyappfrontend.domain.model.Specialist
 import com.example.beautyappfrontend.domain.model.UserProfileUpdateRequest
@@ -1125,6 +1129,9 @@ class ProfileActivity : AppCompatActivity() {
             dialog.dismiss()
             openChatWithClient(booking)
         }
+        bindingDialog.btnBookingInfoReport.setOnClickListener {
+            showProfileReportDialog(booking.client)
+        }
         bindingDialog.btnBookingInfoCancel.setOnClickListener {
             dialog.dismiss()
             openCancelReasonDialog(booking)
@@ -1148,6 +1155,7 @@ class ProfileActivity : AppCompatActivity() {
                 val conversation = chatRepository.startConversation(token, clientUserId)
                 val intent = Intent(this@ProfileActivity, ChatConversationActivity::class.java).apply {
                     putExtra(ChatConversationActivity.EXTRA_CONVERSATION_ID, conversation.id)
+                    putExtra(ChatConversationActivity.EXTRA_PARTICIPANT_ID, conversation.participant?.id ?: clientUserId)
                     putExtra(
                         ChatConversationActivity.EXTRA_PARTICIPANT_NAME,
                         conversation.participant?.displayName ?: booking.clientName,
@@ -1168,6 +1176,81 @@ class ProfileActivity : AppCompatActivity() {
                     e.message ?: getString(R.string.master_detail_message_failed),
                     Toast.LENGTH_LONG,
                 ).show()
+            }
+        }
+    }
+
+    private fun showProfileReportDialog(targetUserId: Int) {
+        if (targetUserId <= 0) {
+            Toast.makeText(this, "Profile is unavailable", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val reasons = listOf(
+            "spam" to "Spam",
+            "fake_profile" to "Fake profile",
+            "offensive" to "Offensive content",
+            "harassment" to "Harassment / bullying",
+            "other" to "Other",
+        )
+        val density = resources.displayMetrics.density
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (16 * density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+        }
+        val radioGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        reasons.forEachIndexed { index, (_, label) ->
+            radioGroup.addView(RadioButton(this).apply {
+                id = index + 1
+                text = label
+                setTextColor(android.graphics.Color.parseColor("#3D5A1E"))
+                textSize = 14f
+            })
+        }
+        radioGroup.check(1)
+        val etDetails = EditText(this).apply {
+            hint = "Additional details (optional)"
+            maxLines = 3
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.topMargin = (10 * density).toInt() }
+        }
+        container.addView(radioGroup)
+        container.addView(etDetails)
+
+        AlertDialog.Builder(this)
+            .setTitle("Report profile")
+            .setView(container)
+            .setPositiveButton("Submit") { _, _ ->
+                val checkedId = radioGroup.checkedRadioButtonId
+                val reasonKey = if (checkedId in 1..reasons.size) reasons[checkedId - 1].first else "other"
+                val text = etDetails.text?.toString()?.trim().orEmpty()
+                submitProfileReport(targetUserId, reasonKey, text)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun submitProfileReport(targetUserId: Int, reason: String, text: String) {
+        val token = session.getToken() ?: return
+        lifecycleScope.launch {
+            try {
+                val resp = RetrofitInstance.api.reportUser(
+                    "Bearer $token",
+                    targetUserId,
+                    ProfileReportRequest(reason = reason, text = text),
+                )
+                when (resp.code()) {
+                    201 -> Toast.makeText(this@ProfileActivity, "Report submitted. Thank you!", Toast.LENGTH_SHORT).show()
+                    409 -> Toast.makeText(this@ProfileActivity, "You have already reported this profile.", Toast.LENGTH_SHORT).show()
+                    400 -> Toast.makeText(this@ProfileActivity, "Cannot report this profile.", Toast.LENGTH_SHORT).show()
+                    403 -> Toast.makeText(this@ProfileActivity, "You can report only profiles you have interacted with.", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(this@ProfileActivity, "Failed to submit report.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Exception) {
+                Toast.makeText(this@ProfileActivity, "Network error. Please try again.", Toast.LENGTH_SHORT).show()
             }
         }
     }
