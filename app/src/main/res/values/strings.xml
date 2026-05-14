@@ -148,18 +148,18 @@
     <string name="chat_attachment_preview">Attachment</string>
     <string name="chat_media_upload_failed">Could not upload media</string>
     <string name="chat_media_uploading">Uploading…</string>
-    <string name="chat_report_profile">Поскаржитися на профіль</string>
-    <string name="chat_delete_for_me">Видалити тільки в мене</string>
-    <string name="chat_delete_for_both">Видалити в обох</string>
-    <string name="chat_conversation_unavailable">Чат недоступний</string>
-    <string name="chat_delete_confirm_self_title">Приховати чат?</string>
-    <string name="chat_delete_confirm_self_message">Чат зникне з вашого списку. У співрозмовника історія залишиться.</string>
-    <string name="chat_delete_confirm_both_title">Видалити для обох?</string>
-    <string name="chat_delete_confirm_both_message">Усі повідомлення буде видалено для вас і для співрозмовника.</string>
-    <string name="chat_delete_confirm_action">Видалити</string>
-    <string name="chat_delete_cancel">Скасувати</string>
-    <string name="chat_delete_success_self">Чат приховано у вашому списку</string>
-    <string name="chat_delete_success_both">Чат видалено</string>
-    <string name="chat_delete_failed">Не вдалося виконати дію</string>
+    <string name="chat_report_profile">Report profile</string>
+    <string name="chat_delete_for_me">Delete for me only</string>
+    <string name="chat_delete_for_both">Delete for both</string>
+    <string name="chat_conversation_unavailable">Chat unavailable</string>
+    <string name="chat_delete_confirm_self_title">Hide this chat?</string>
+    <string name="chat_delete_confirm_self_message">It will disappear from your list. The other person will keep the history.</string>
+    <string name="chat_delete_confirm_both_title">Delete for both?</string>
+    <string name="chat_delete_confirm_both_message">All messages will be removed for you and the other person.</string>
+    <string name="chat_delete_confirm_action">Delete</string>
+    <string name="chat_delete_cancel">Cancel</string>
+    <string name="chat_delete_success_self">Chat hidden from your list</string>
+    <string name="chat_delete_success_both">Chat deleted</string>
+    <string name="chat_delete_failed">Couldn\'t complete this action</string>
 
 </resources>
