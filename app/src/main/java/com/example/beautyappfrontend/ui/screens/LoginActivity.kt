@@ -12,13 +12,16 @@ import com.example.beautyappfrontend.databinding.ActivityLoginBinding
 import com.example.beautyappfrontend.ui.AuthState
 import com.example.beautyappfrontend.ui.AuthViewModel
 import com.example.beautyappfrontend.data.repository.FavoriteMastersRepository
+import com.example.beautyappfrontend.data.remote.RetrofitInstance
 import com.example.beautyappfrontend.utils.GoogleSignInHelper
 import com.example.beautyappfrontend.utils.SessionManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LoginActivity : AppCompatActivity() {
 
@@ -37,7 +40,14 @@ class LoginActivity : AppCompatActivity() {
         session = SessionManager(this)
 
         if (session.isLoggedIn()) {
-            navigateToHome()
+            lifecycleScope.launch {
+                syncUserFlagsFromServer()
+                if (session.isStaff()) {
+                    navigateToModeration()
+                } else {
+                    navigateToHome()
+                }
+            }
             return
         }
 
@@ -52,6 +62,26 @@ class LoginActivity : AppCompatActivity() {
 
         observeAuthState()
         setupClickListeners()
+    }
+
+    /**
+     * Refresh /api/auth/me/ so is_staff survives app restarts (cold start used to always open Home).
+     */
+    private suspend fun syncUserFlagsFromServer() {
+        val token = session.getToken() ?: return
+        withContext(Dispatchers.IO) {
+            try {
+                val response = RetrofitInstance.api.getCurrentUser("Bearer $token")
+                if (response.isSuccessful) {
+                    val u = response.body() ?: return@withContext
+                    session.saveUserInfo(u)
+                    session.saveIsStaff(u.isStaff == true)
+                    session.saveIsMaster(u.isMaster == true)
+                }
+            } catch (_: Exception) {
+                // Offline: keep local flags
+            }
+        }
     }
 
     private fun setupClickListeners() {
