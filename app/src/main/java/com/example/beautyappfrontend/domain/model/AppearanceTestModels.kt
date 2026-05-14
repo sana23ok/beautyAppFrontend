@@ -13,6 +13,7 @@ data class AppearanceTestRequest(
     @SerializedName("preferred_style") val preferredStyle: String? = null,
     val goals: List<String>? = null,
     @SerializedName("body_measurements") val bodyMeasurements: BodyMeasurements? = null,
+    @SerializedName("user_city") val userCity: String? = null,
 )
 
 data class BodyMeasurements(

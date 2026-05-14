@@ -52,6 +52,7 @@ data class AuthUserInfo(
     @SerializedName("last_name") val lastName: String? = null,
     val avatar: String? = null,
     @SerializedName("phone_number") val phoneNumber: String? = null,
+    val city: String? = null,
     @SerializedName("is_master") val isMaster: Boolean? = null,
     @SerializedName("is_staff") val isStaff: Boolean? = null,
     @SerializedName("client_profile_id") val clientProfileId: Int? = null,
@@ -62,6 +63,7 @@ data class UserProfileUpdateRequest(
     @SerializedName("first_name") val firstName: String? = null,
     @SerializedName("last_name") val lastName: String? = null,
     @SerializedName("phone_number") val phoneNumber: String? = null,
+    val city: String? = null,
     val avatar: String? = null,
 )
 

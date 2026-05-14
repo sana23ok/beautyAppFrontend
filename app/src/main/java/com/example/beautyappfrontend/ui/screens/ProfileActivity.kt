@@ -202,6 +202,7 @@ class ProfileActivity : AppCompatActivity() {
         Log.d(TAG, "  displayName : '$name'")
         Log.d(TAG, "  email       : '$email'")
         Log.d(TAG, "  phone       : '$phone'")
+        Log.d(TAG, "  city        : '${session.getUserCity()}'")
         Log.d(TAG, "  token empty : ${token.isNullOrEmpty()}")
 
         binding.tvRole.text = if (isMaster) "Master" else "Client"
@@ -216,7 +217,7 @@ class ProfileActivity : AppCompatActivity() {
                 fallbackPhone = phone,
             )
         } else {
-            renderClientProfile(name, email, phone, session.getAvatarUrl().orEmpty())
+            renderClientProfile(name, email, phone, session.getAvatarUrl().orEmpty(), session.getUserCity())
         }
         renderFavoritesSection()
     }
@@ -466,10 +467,14 @@ class ProfileActivity : AppCompatActivity() {
         startActivity(intent, options.toBundle())
     }
 
-    private fun renderClientProfile(name: String, email: String, phone: String, avatarUrl: String) {
+    private fun renderClientProfile(name: String, email: String, phone: String, avatarUrl: String, city: String) {
         binding.tvName.text = name.ifBlank { "Beauty client" }
         binding.tvSpecialization.text = "Beauty client"
-        binding.tvLocation.text = "Saved in your account database profile"
+        val cityLine = city.trim()
+        binding.tvLocation.text = when {
+            cityLine.isNotEmpty() -> cityLine
+            else -> "Your city — tap Edit to add it (improves search & recommendations)"
+        }
         binding.tvDescription.text =
             "Your user profile is synced with the backend. Edit it anytime to keep your account details up to date."
         binding.tvEmail.text = email.ifBlank { "—" }
@@ -1426,6 +1431,7 @@ class ProfileActivity : AppCompatActivity() {
         val dialogBinding = DialogUserProfileEditBinding.inflate(layoutInflater)
         dialogBinding.etFullName.setText(session.getDisplayName())
         dialogBinding.etPhone.setText(session.getPhoneNumber())
+        dialogBinding.etCity.setText(session.getUserCity())
 
         dialogBinding.btnUploadAvatar.setOnClickListener {
             pendingAvatarEditText = null
@@ -1450,6 +1456,7 @@ class ProfileActivity : AppCompatActivity() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val fullName = dialogBinding.etFullName.text.toString().trim()
                 val phone = dialogBinding.etPhone.text.toString().trim()
+                val city = dialogBinding.etCity.text.toString().trim()
                 val avatar = session.getAvatarUrl().orEmpty()
 
                 if (fullName.isBlank()) {
@@ -1468,6 +1475,7 @@ class ProfileActivity : AppCompatActivity() {
                                 firstName = firstName,
                                 lastName = lastName,
                                 phoneNumber = phone,
+                                city = city,
                                 avatar = avatar.ifBlank { null },
                             ),
                         )

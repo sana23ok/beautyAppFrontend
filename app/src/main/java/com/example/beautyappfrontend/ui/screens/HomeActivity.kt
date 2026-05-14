@@ -310,6 +310,7 @@ class HomeActivity : AppCompatActivity() {
             preferredStyle = selectedAnswers["preferred_style"],
             goals = selectedGoals.toList().takeIf { it.isNotEmpty() },
             bodyMeasurements = BodyMeasurements(bust, waist, hips),
+            userCity = sessionManager.getUserCity().takeIf { it.isNotBlank() },
         )
 
         submitToBackend(request)

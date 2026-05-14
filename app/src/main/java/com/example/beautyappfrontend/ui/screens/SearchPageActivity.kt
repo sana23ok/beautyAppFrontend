@@ -183,7 +183,9 @@ class SearchPageActivity : AppCompatActivity() {
                 val searchQuery = buildSearchQuery(query)
                 Log.d(TAG, "Fetching masters with query: $searchQuery")
 
+                val authHeader = session.getToken()?.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
                 val response = RetrofitInstance.api.searchSpecialists(
+                    authorization = authHeader,
                     query = searchQuery.ifBlank { null },
                     page = currentPage,
                 )

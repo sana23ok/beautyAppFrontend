@@ -6,7 +6,7 @@ import com.example.beautyappfrontend.domain.model.Specialist
 class SpecialistRepository(
     private val api: BeautyApi
 ) {
-    suspend fun getSpecialists(): List<Specialist> {
-        return api.getSpecialists()
+    suspend fun getSpecialists(authorization: String? = null): List<Specialist> {
+        return api.getSpecialists(authorization)
     }
 }

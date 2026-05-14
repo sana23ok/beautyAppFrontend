@@ -61,10 +61,13 @@ interface BeautyApi {
     suspend fun checkConnection(): TestResponse
 
     @GET("api/masters/")
-    suspend fun getSpecialists(): List<Specialist>
+    suspend fun getSpecialists(
+        @Header("Authorization") authorization: String? = null,
+    ): List<Specialist>
 
     @GET("api/masters/")
     suspend fun searchSpecialists(
+        @Header("Authorization") authorization: String? = null,
         @retrofit2.http.Query("q")               query: String?          = null,
         @retrofit2.http.Query("location")        location: String?       = null,
         @retrofit2.http.Query("specialisation")  specialisation: String? = null,

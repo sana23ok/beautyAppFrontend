@@ -65,6 +65,7 @@ class SessionManager(context: Context) {
             .putString(KEY_LAST_NAME, user.lastName)
             .putString(KEY_AVATAR, user.avatar)
             .putString(KEY_PHONE, user.phoneNumber)
+            .putString(KEY_USER_CITY, user.city)
             .putBoolean(KEY_IS_MASTER, user.isMaster == true)
             .putBoolean(KEY_IS_STAFF, user.isStaff == true)
             .putInt(KEY_MASTER_ID, user.masterProfileId ?: -1)
@@ -101,6 +102,8 @@ class SessionManager(context: Context) {
     }
 
     fun getPhoneNumber(): String = prefs.getString(KEY_PHONE, "") ?: ""
+
+    fun getUserCity(): String = prefs.getString(KEY_USER_CITY, "")?.trim().orEmpty()
 
     fun saveIsMaster(isMaster: Boolean) {
         prefs.edit().putBoolean(KEY_IS_MASTER, isMaster).apply()
@@ -257,6 +260,7 @@ class SessionManager(context: Context) {
         private const val KEY_LAST_NAME  = "last_name"
         private const val KEY_AVATAR     = "avatar"
         private const val KEY_PHONE      = "phone"
+        private const val KEY_USER_CITY  = "user_city"
         private const val KEY_IS_MASTER  = "is_master"
         private const val KEY_IS_STAFF   = "is_staff"
         private const val KEY_MASTER_ID = "master_id"
