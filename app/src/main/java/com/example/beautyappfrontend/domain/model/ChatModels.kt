@@ -74,6 +74,10 @@ data class MarkReadResponse(
     @SerializedName("marked_read") val markedRead: Int = 0,
 )
 
+data class DeleteConversationRequest(
+    val scope: String,
+)
+
 data class Conversation(
     val id: Int,
     val participantId: Int,

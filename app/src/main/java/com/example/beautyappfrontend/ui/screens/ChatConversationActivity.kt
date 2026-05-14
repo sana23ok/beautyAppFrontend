@@ -70,6 +70,9 @@ class ChatConversationActivity : AppCompatActivity() {
         const val EXTRA_PARTICIPANT_AVATAR = "participant_avatar"
         const val EXTRA_PARTICIPANT_ID = "participant_id"
         const val EXTRA_IS_ONLINE = "is_online"
+        private const val MENU_REPORT_PROFILE = 1
+        private const val MENU_DELETE_SELF = 2
+        private const val MENU_DELETE_BOTH = 3
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -186,19 +189,77 @@ class ChatConversationActivity : AppCompatActivity() {
     private fun setupHeaderButtons() {
         binding.btnBack.setOnClickListener { finish() }
         binding.btnMore.setOnClickListener { anchor ->
-            if (participantId <= 0) {
-                Toast.makeText(this, "Profile is unavailable", Toast.LENGTH_SHORT).show()
+            if (conversationId <= 0) {
+                Toast.makeText(this, getString(R.string.chat_conversation_unavailable), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val popup = PopupMenu(this, anchor)
-            popup.menu.add(0, 1, 0, "Report profile")
+            if (participantId > 0) {
+                popup.menu.add(0, MENU_REPORT_PROFILE, 0, getString(R.string.chat_report_profile))
+            }
+            popup.menu.add(0, MENU_DELETE_SELF, 1, getString(R.string.chat_delete_for_me))
+            popup.menu.add(0, MENU_DELETE_BOTH, 2, getString(R.string.chat_delete_for_both))
             popup.setOnMenuItemClickListener { item ->
-                if (item.itemId == 1) {
-                    showProfileReportDialog(participantId)
+                when (item.itemId) {
+                    MENU_REPORT_PROFILE -> showProfileReportDialog(participantId)
+                    MENU_DELETE_SELF -> confirmDeleteConversation(scope = "self")
+                    MENU_DELETE_BOTH -> confirmDeleteConversation(scope = "both")
                 }
                 true
             }
             popup.show()
+        }
+    }
+
+    private fun confirmDeleteConversation(scope: String) {
+        val deleteForBoth = scope == "both"
+        AlertDialog.Builder(this)
+            .setTitle(
+                getString(
+                    if (deleteForBoth) R.string.chat_delete_confirm_both_title
+                    else R.string.chat_delete_confirm_self_title,
+                ),
+            )
+            .setMessage(
+                getString(
+                    if (deleteForBoth) R.string.chat_delete_confirm_both_message
+                    else R.string.chat_delete_confirm_self_message,
+                ),
+            )
+            .setNegativeButton(R.string.chat_delete_cancel, null)
+            .setPositiveButton(R.string.chat_delete_confirm_action) { _, _ ->
+                deleteConversation(scope)
+            }
+            .show()
+    }
+
+    private fun deleteConversation(scope: String) {
+        val token = session.getToken()
+        if (token.isNullOrBlank()) {
+            Toast.makeText(this, getString(R.string.chat_delete_failed), Toast.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                chatRepository.deleteConversation(token, conversationId, scope)
+                Toast.makeText(
+                    this@ChatConversationActivity,
+                    getString(
+                        if (scope == "both") R.string.chat_delete_success_both
+                        else R.string.chat_delete_success_self,
+                    ),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                setResult(RESULT_OK)
+                finish()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete conversation", e)
+                Toast.makeText(
+                    this@ChatConversationActivity,
+                    getString(R.string.chat_delete_failed),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
         }
     }
 

@@ -5,6 +5,7 @@ import com.example.beautyappfrontend.domain.model.ChatMessage
 import com.example.beautyappfrontend.domain.model.Conversation
 import com.example.beautyappfrontend.domain.model.ConversationDetailResponse
 import com.example.beautyappfrontend.domain.model.ChatMediaUploadResponse
+import com.example.beautyappfrontend.domain.model.DeleteConversationRequest
 import com.example.beautyappfrontend.domain.model.SendMessageRequest
 import okhttp3.MultipartBody
 import com.example.beautyappfrontend.domain.model.StartConversationRequest
@@ -93,5 +94,15 @@ class ChatRepository {
             return response.body() ?: throw Exception("Empty response")
         }
         throw Exception("Failed to upload chat media: ${response.code()}")
+    }
+
+    suspend fun deleteConversation(token: String, conversationId: Int, scope: String) {
+        val response = RetrofitInstance.api.deleteConversation(
+            "Bearer $token",
+            conversationId,
+            DeleteConversationRequest(scope = scope),
+        )
+        if (response.isSuccessful) return
+        throw Exception("Failed to delete conversation: ${response.code()}")
     }
 }

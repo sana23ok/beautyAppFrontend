@@ -17,6 +17,7 @@ import com.example.beautyappfrontend.domain.model.BookingResponse
 import com.example.beautyappfrontend.domain.model.CancelBookingRequest
 import com.example.beautyappfrontend.domain.model.ConversationDetailResponse
 import com.example.beautyappfrontend.domain.model.ConversationResponse
+import com.example.beautyappfrontend.domain.model.DeleteConversationRequest
 import com.example.beautyappfrontend.domain.model.GoogleAuthRequest
 import com.example.beautyappfrontend.domain.model.LoginRequest
 import com.example.beautyappfrontend.domain.model.MasterProfileRequest
@@ -305,6 +306,13 @@ interface BeautyApi {
         @Header("Authorization") authHeader: String,
         @Path("id") conversationId: Int,
     ): Response<MarkReadResponse>
+
+    @POST("api/chat/conversations/{id}/delete/")
+    suspend fun deleteConversation(
+        @Header("Authorization") authHeader: String,
+        @Path("id") conversationId: Int,
+        @Body request: DeleteConversationRequest,
+    ): Response<Unit>
 
     // ── Moderation (staff only) ────────────────────────────────────────────────
 
