@@ -65,8 +65,7 @@
                     android:contentDescription="Favorite"
                     android:padding="4dp"
                     android:scaleType="centerInside"
-                    android:src="@drawable/ic_heart_outline"
-                    app:tint="@color/peach_dark" />
+                    android:src="@drawable/ic_heart_outline" />
             </LinearLayout>
 
             <TextView

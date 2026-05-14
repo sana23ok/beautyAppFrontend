@@ -4,7 +4,12 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Same silhouette as filled heart; stroke only so it's visible on light backgrounds -->
     <path
-        android:pathData="M16.5,3c-1.74,0 -3.41,0.81 -4.5,2.09C10.91,3.81 9.24,3 7.5,3 4.42,3 2,5.42 2,8.5c0,3.78 3.4,6.86 8.55,11.54L12,21.35l1.45,-1.32C18.6,15.36 22,12.28 22,8.5 22,5.42 19.58,3 16.5,3zM12,20.35L10.55,18.94C6.21,14.97 3.6,12.62 3.6,8.79 3.6,6.34 5.49,4.45 7.94,4.45c1.89,0 3.73,1.22 4.38,2.91h1.36c0.65,-1.69 2.49,-2.91 4.38,-2.91 2.45,0 4.34,1.89 4.34,4.34 0,3.83 -2.61,6.18 -6.95,10.15L12,20.35z"
-        android:fillColor="#FFFFFF" />
+        android:pathData="M12,21.35l-1.45,-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78 -3.4,6.86 -8.55,11.54L12,21.35z"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="1.2"
+        android:strokeColor="#F65368"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>
