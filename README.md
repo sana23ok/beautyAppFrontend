@@ -64,13 +64,15 @@ Download and install the latest Android build on your device:
 
 Watch a walkthrough of the sign-in flow, navigation, and core features:
 
-![SelfEra app demo preview](media/video_thumbnail.png)
+<p align="center">
+  <a href="https://youtu.be/fy1KcxZ2toU">
+    <img src="media/video_thumbnail.png" alt="SelfEra app demo — click to watch on YouTube" width="720"/>
+  </a>
+</p>
 
-<video width="720" controls poster="media/video_thumbnail.png">
-  <source src="media/demo.mp4" type="video/mp4">
-  Your browser does not support embedded video.
-  [Download demo video](media/demo.mp4)
-</video>
+<p align="center">
+  ▶️ <a href="https://youtu.be/fy1KcxZ2toU"><strong>Watch on YouTube</strong></a>
+</p>
 
 ---
 
