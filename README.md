@@ -1,7 +1,7 @@
 <table>
   <tr>
-    <td width="140" valign="top">
-      <img src="media/logo.png" alt="SelfEra logo" width="120"/>
+    <td width="260" valign="top">
+      <img src="media/logo.png" alt="SelfEra logo" width="240"/>
     </td>
     <td valign="top">
       <h1>SelfEra</h1>
@@ -20,31 +20,15 @@ The backend lives in a separate repository: **[beautyAppBackend](https://github.
 
 ---
 
-## Deployment
+## Installation
 
-| Component | Platform |
-|-----------|----------|
-| REST API | [Render](https://render.com) |
-| Database | Render PostgreSQL |
-| Media storage | Cloudinary |
-
-The backend deploys via Render with automatic migrations and environment-based configuration. The mobile app reads the API base URL from `local.properties` at build time.
+📥 [**Download SelfEra APK**](media/SelfEra.apk) · Android 7.0+ (API 24)
 
 ---
 
-## Installation
+## Deployment
 
-Download and install the latest Android build on your device:
-
-📥 [**Download SelfEra APK**](media/SelfEra.apk)
-
-> To build the APK locally, set `api.base.url=https://beautyappbackend.onrender.com/` in `local.properties`, then run:
-> ```bash
-> ./gradlew :app:assembleDebug
-> ```
-> Copy `app/build/outputs/apk/debug/app-debug.apk` to `media/SelfEra.apk`.
-
-**Requirements:** Android 7.0 (API 24) or higher.
+**REST API** and **PostgreSQL** on [Render](https://render.com), **media** on Cloudinary. Backend deploys with automatic migrations; the app reads the API URL from `local.properties` at build time.
 
 ---
 
